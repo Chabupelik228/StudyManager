@@ -31,7 +31,6 @@ services:
       - "127.0.0.1:51234:8000"
     volumes:
       - ./data:/app/data
-      - ./duty.json:/app/duty.json
     networks:
       - common_net
     extra_hosts:
@@ -39,6 +38,25 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  bot:
+    build:
+      context: .
+      dockerfile: tgbot/Dockerfile
+    container_name: studymanager_bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      BACKEND_URL: http://backend:8000
+      TZ: Europe/Moscow
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - common_net
 
 volumes:
   postgres_data:

@@ -132,3 +132,9 @@ async def assign_duties(
         f"Дата: {data.date}. Дежурят: {short_names}",
     )
     return {"status": "ok"}
+
+
+@router.post("/internal/broadcast_duties")
+async def broadcast_duties():
+    await manager.broadcast({"type": "update_duties"})
+    return {"status": "ok"}
