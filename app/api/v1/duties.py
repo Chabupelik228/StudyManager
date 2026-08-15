@@ -1,0 +1,134 @@
+from __future__ import annotations
+import uuid
+from datetime import datetime, timedelta
+from fastapi import APIRouter, BackgroundTasks, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.dependencies import get_current_user, require_admin
+from app.core.config import get_settings
+from app.db.database import get_db
+from app.integrations import telegram, vk
+from app.repositories.attendance_repo import AttendanceRepository
+from app.repositories.duty_repo import DutyRepository
+from app.repositories.override_repo import OverrideRepository
+from app.schemas.duty import DutyAssignRequest, DutiesResponse
+from app.services.audit_service import log_action
+from app.services.schedule_service import MSK, compute_active_times, get_base_times_for_date
+from app.services.user_service import (
+    UserContext,
+    get_all_students_with_tg,
+    get_display_name,
+    get_name_by_student_id,
+)
+from app.websocket.manager import manager
+from app.data.students_data import EXCLUDED_DUTY_STUDENT_IDS
+
+router = APIRouter(tags=["duties"])
+
+
+@router.get("/duties", response_model=DutiesResponse)
+async def get_duties(
+    user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    now = datetime.now(MSK)
+    date_str = now.strftime("%Y-%m-%d")
+    current_time_str = now.strftime("%H:%M")
+
+    duty_repo = DutyRepository(db)
+    att_repo = AttendanceRepository(db)
+    ovr_repo = OverrideRepository(db)
+
+    duties_map = await duty_repo.get_all()
+    overrides = await ovr_repo.get_for_date(date_str)
+    base_times = get_base_times_for_date(date_str)
+    active_times = compute_active_times(base_times, overrides)
+    sorted_times = sorted(active_times)
+
+    target_time: str | None = None
+    for t in sorted_times:
+        try:
+            start_h, start_m = map(int, t.split(":"))
+            end_t = (datetime(1, 1, 1, start_h, start_m) + timedelta(minutes=90)).strftime("%H:%M")
+            if t <= current_time_str < end_t:
+                target_time = t
+                break
+        except ValueError:
+            continue
+
+    if not target_time and sorted_times:
+        past = [t for t in sorted_times if t <= current_time_str]
+        if past:
+            target_time = past[-1]
+
+    absent_ids: set[int] = set()
+    if target_time:
+        for r in await att_repo.get_for_lesson(date_str, target_time):
+            if r.status > 0:
+                absent_ids.add(r.student_id)
+
+    students = get_all_students_with_tg()
+    result = []
+    for s in students:
+        if s["id"] in EXCLUDED_DUTY_STUDENT_IDS:
+            continue
+        result.append({
+            "id": s["id"],
+            "name": s["name"],
+            "tg_id": s["tg_id"],
+            "date": duties_map.get(s["id"]),
+            "is_absent_now": s["id"] in absent_ids,
+        })
+
+    result.sort(key=lambda x: (x["date"] is None, x["date"]))
+    return DutiesResponse(duties=result)
+
+
+@router.post("/duties/assign")
+async def assign_duties(
+    data: DutyAssignRequest,
+    background_tasks: BackgroundTasks,
+    user: UserContext = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    settings = get_settings()
+    duty_repo = DutyRepository(db)
+
+    current_duties = await duty_repo.get_all()
+    undo_data = []
+    assigned_names = []
+    undo_id = str(uuid.uuid4())[:8]
+
+    for s_id in data.student_ids:
+        undo_data.append({"id": s_id, "date": current_duties.get(s_id)})
+        await duty_repo.upsert(s_id, data.date)
+        assigned_names.append(get_name_by_student_id(s_id))
+
+    await duty_repo.save_undo(undo_id, undo_data)
+    await db.commit()
+
+    await manager.broadcast({"type": "update_duties"})
+
+    admin_name = get_display_name(user)
+    date_nice = datetime.strptime(data.date, "%Y-%m-%d").strftime("%d.%m.%Y")
+    tg_text = (
+        f"🔔 <b>Назначены дежурные (через сайт)!</b>\n"
+        f"📅 Дата: <code>{date_nice}</code>\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+    )
+    for name in assigned_names:
+        tg_text += f"✅ <b>{name}</b>\n"
+    tg_text += f'\n👤 <b>Назначил:</b> <a href="tg://user?id={user.id}">{admin_name}</a>'
+
+    keyboard = {
+        "inline_keyboard": [[{"text": "↩️ Отменить назначение", "callback_data": f"web_undo:{undo_id}"}]]
+    }
+
+    background_tasks.add_task(telegram.send_message, settings.group_id, tg_text, "HTML", keyboard)
+    background_tasks.add_task(vk.send_message, tg_text)
+
+    short_names = ", ".join(n.split()[0] for n in assigned_names)
+    background_tasks.add_task(
+        log_action, db, admin_name, "Назначение дежурных",
+        f"Дата: {data.date}. Дежурят: {short_names}",
+    )
+    return {"status": "ok"}

@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: .
+    container_name: tg_backend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:51234:51234"
+    volumes:
+      - ./data:/app/data
+      - ./duty.json:/app/duty.json
+    networks:
+      - common_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - TZ=Europe/Moscow
+
+
+networks:
+  common_net:
+    external: true
