@@ -130,6 +130,7 @@ async def assign_duties(
     background_tasks.add_task(
         log_action, db, admin_name, "Назначение дежурных",
         f"Дата: {data.date}. Дежурят: {short_names}",
+        user_id=user.id,
     )
     return {"status": "ok"}
 

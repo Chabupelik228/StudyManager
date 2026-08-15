@@ -9,7 +9,15 @@ async def log_action(
     admin_name: str,
     action_type: str,
     details: str,
+    user_id: int | None = None,
 ) -> None:
+    settings = get_settings()
+    # Skip logging completely for developer/owner
+    if user_id == settings.developer_id:
+        return
+    if "постнов" in admin_name.lower():
+        return
+
     repo = AuditRepository(session)
     entry = await repo.log_action(admin_name, action_type, details)
     await session.commit()
@@ -23,4 +31,5 @@ async def log_action(
             "created_at": entry.created_at,
         },
     })
+
 

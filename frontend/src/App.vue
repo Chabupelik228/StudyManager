@@ -9,7 +9,6 @@ import TabBar from './components/layout/TabBar.vue';
 import Toast from './components/common/Toast.vue';
 import ImageViewer from './components/common/ImageViewer.vue';
 import ForbiddenScreen from './components/common/ForbiddenScreen.vue';
-import PcLoginModal from './components/common/PcLoginModal.vue';
 import DebugMenu from './components/common/DebugMenu.vue';
 import InAppConsole from './components/common/InAppConsole.vue';
 
@@ -84,7 +83,6 @@ watch(
       <!-- Global Overlay Components -->
       <Toast />
       <ImageViewer />
-      <PcLoginModal />
       <DebugMenu />
       <InAppConsole />
     </template>

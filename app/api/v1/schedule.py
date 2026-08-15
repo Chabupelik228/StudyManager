@@ -64,7 +64,8 @@ async def update_override(
     action = "Отмена пары" if data.is_canceled else "Замена пары"
     background_tasks.add_task(
         log_action, db, admin_name, action,
-        f"{data.date} {data.time} → {data.new_name}"
+        f"{data.date} {data.time} → {data.new_name}",
+        user_id=user.id,
     )
 
     return {"status": "ok"}

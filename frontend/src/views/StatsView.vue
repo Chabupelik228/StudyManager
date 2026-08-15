@@ -7,6 +7,7 @@ import { formatMonthYear } from '../utils/date';
 import { tg } from '../utils/telegram';
 import SortBar from '../components/stats/SortBar.vue';
 import StatCard from '../components/stats/StatCard.vue';
+import SkeletonLoader from '../components/common/SkeletonLoader.vue';
 import { ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-vue-next';
 
 const statsStore = useStatsStore();
@@ -41,22 +42,22 @@ function handleExportExcel() {
 <template>
   <div class="h-full flex flex-col overflow-hidden">
     <!-- Header with Month Switcher & Excel Export -->
-    <div class="p-3 bg-tg-bg/90 backdrop-blur-md border-b border-black/10 dark:border-white/10 space-y-2.5 sticky top-0 z-10 flex-shrink-0">
+    <header class="p-3 glass-header space-y-2.5 sticky top-0 z-10 flex-shrink-0">
       <!-- Month Pill -->
-      <div class="bg-tg-secondaryBg rounded-2xl p-1 flex items-center justify-between shadow-inner">
+      <div class="bg-black/5 dark:bg-white/10 rounded-2xl p-1 flex items-center justify-between">
         <button
-          class="w-8 h-8 rounded-xl bg-tg-bg text-tg-text flex items-center justify-center font-bold shadow-sm active:scale-95 transition-all"
+          class="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 text-tg-text flex items-center justify-center font-bold shadow-sm active:scale-95 transition-all"
           @click="statsStore.changeMonth(-1)"
         >
           <ChevronLeft class="w-4 h-4" />
         </button>
 
-        <div class="text-sm font-semibold capitalize px-2 text-center select-none">
+        <div class="text-sm font-bold capitalize px-2 text-center select-none text-tg-text">
           {{ formattedMonth }}
         </div>
 
         <button
-          class="w-8 h-8 rounded-xl bg-tg-bg text-tg-text flex items-center justify-center font-bold shadow-sm active:scale-95 transition-all"
+          class="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 text-tg-text flex items-center justify-center font-bold shadow-sm active:scale-95 transition-all"
           @click="statsStore.changeMonth(1)"
         >
           <ChevronRight class="w-4 h-4" />
@@ -66,23 +67,23 @@ function handleExportExcel() {
       <!-- Excel Export Button for Admins -->
       <button
         v-if="authStore.isAdmin"
-        class="w-full py-2.5 px-3 rounded-xl bg-tg-bg border border-black/10 dark:border-white/10 text-[#007aff] font-semibold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-sm"
+        class="w-full py-2 px-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-sm hover:bg-emerald-500/15"
         @click="handleExportExcel"
       >
         <FileSpreadsheet class="w-4 h-4" />
-        <span>Скачать отчет (Excel)</span>
+        <span>Скачать ведомость за {{ formattedMonth }} (Excel)</span>
       </button>
 
       <!-- Sort Bar -->
       <SortBar />
-    </div>
+    </header>
 
     <!-- Stats Cards List -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
-      <div v-if="statsStore.loading" class="text-center py-12 text-tg-hint text-sm">
-        Загрузка статистики...
-      </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-28">
+      <!-- Loading Skeleton -->
+      <SkeletonLoader v-if="statsStore.loading" type="card" :count="5" />
 
+      <!-- Actual Stats -->
       <template v-else>
         <StatCard
           v-for="s in statsStore.sortedStats"

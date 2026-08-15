@@ -4,21 +4,29 @@
 
 :root {
   --tg-theme-bg-color: #ffffff;
-  --tg-theme-secondary-bg-color: #f3f2f8;
-  --tg-theme-text-color: #000000;
-  --tg-theme-hint-color: #8e8e93;
+  --tg-theme-secondary-bg-color: #f6f7fb;
+  --tg-theme-text-color: #0f172a;
+  --tg-theme-hint-color: #94a3b8;
   --tg-theme-link-color: #007aff;
   --tg-theme-button-color: #007aff;
   --tg-theme-button-text-color: #ffffff;
-  --separator: rgba(142, 142, 147, 0.2);
+  --separator: rgba(148, 163, 184, 0.18);
   --safe-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+.dark, [data-theme='dark'] {
+  --tg-theme-bg-color: #000000;
+  --tg-theme-secondary-bg-color: #0b0f19;
+  --tg-theme-text-color: #f8fafc;
+  --tg-theme-hint-color: #64748b;
+  --separator: rgba(255, 255, 255, 0.08);
 }
 
 /* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -26,11 +34,94 @@
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
-/* Markdown styling in Chat */
+.animate-fade-in {
+  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Shimmer Skeleton */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.08) 25%,
+    rgba(148, 163, 184, 0.18) 37%,
+    rgba(148, 163, 184, 0.08) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease infinite;
+}
+
+/* Glassmorphism utility classes */
+.glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.dark .glass-card, [data-theme='dark'] .glass-card {
+  background: rgba(17, 24, 39, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dark .glass-nav, [data-theme='dark'] .glass-nav {
+  background: rgba(10, 14, 23, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-header {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dark .glass-header, [data-theme='dark'] .glass-header {
+  background: rgba(10, 14, 23, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Subtle glowing status styles */
+.glow-emerald {
+  box-shadow: 0 0 14px -2px rgba(16, 185, 129, 0.35);
+}
+
+.glow-rose {
+  box-shadow: 0 0 14px -2px rgba(244, 63, 94, 0.35);
+}
+
+.glow-amber {
+  box-shadow: 0 0 14px -2px rgba(245, 158, 11, 0.35);
+}
+
+.glow-blue {
+  box-shadow: 0 0 16px -2px rgba(0, 122, 255, 0.4);
+}
+
+/* Markdown styling in Chat & Logs */
 .markdown-body {
   word-wrap: break-word;
   overflow-wrap: anywhere;
@@ -82,40 +173,6 @@
   font-weight: 600;
 }
 
-/* Code scroll container */
-.code-block-wrapper {
-  position: relative;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 0.625rem;
-  margin: 0.5rem 0;
-  border: 1px solid var(--separator);
-  overflow: hidden;
-}
-
-.code-block-wrapper pre {
-  margin: 0;
-  padding: 0.75rem;
-  overflow-x: auto;
-  font-family: "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.8125rem;
-}
-
-.code-block-wrapper code {
-  background: transparent !important;
-  padding: 0 !important;
-}
-
-/* Inline code */
-.markdown-body :not(pre) > code {
-  background: rgba(0, 0, 0, 0.07);
-  color: #ff3b30;
-  padding: 0.15rem 0.35rem;
-  border-radius: 0.3rem;
-  font-family: monospace;
-  font-size: 0.875em;
-  word-break: break-word;
-}
-
 /* Custom horizontal scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
@@ -123,7 +180,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(142, 142, 147, 0.35);
+  background: rgba(148, 163, 184, 0.3);
   border-radius: 9999px;
 }
 

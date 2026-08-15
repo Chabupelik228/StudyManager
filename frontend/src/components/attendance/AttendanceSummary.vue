@@ -1,35 +1,49 @@
 <script setup lang="ts">
 import { useAttendanceStore } from '../../stores/attendance';
+import { Users, Filter } from 'lucide-vue-next';
 
 const attendanceStore = useAttendanceStore();
 </script>
 
 <template>
-  <div class="bg-tg-bg rounded-2xl p-4 shadow-sm border border-black/5 dark:border-white/5 space-y-3">
+  <div class="glass-card rounded-2xl p-4 space-y-3">
     <div class="flex items-center justify-between">
-      <div class="text-sm font-semibold">
-        Отсутствуют: <b class="text-[#007aff]">{{ attendanceStore.totalAbsent }}</b>
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-[#007aff]/10 text-[#007aff] flex items-center justify-center">
+          <Users class="w-4 h-4" />
+        </div>
+        <div>
+          <div class="text-[11px] font-medium text-tg-hint uppercase tracking-wider">Отсутствуют</div>
+          <div class="text-lg font-black text-tg-text leading-tight">
+            {{ attendanceStore.totalAbsent }} <span class="text-xs font-medium text-tg-hint">из {{ attendanceStore.students.length }}</span>
+          </div>
+        </div>
       </div>
+
       <button
-        class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all duration-200 active:scale-95 shadow-sm"
         :class="
           attendanceStore.showOnlyAbsent
-            ? 'bg-[#007aff] text-white shadow-sm'
-            : 'bg-tg-secondaryBg text-tg-text hover:bg-black/5'
+            ? 'bg-[#007aff] text-white glow-blue'
+            : 'bg-black/5 dark:bg-white/10 text-tg-text hover:bg-black/10 dark:hover:bg-white/15'
         "
         @click="attendanceStore.showOnlyAbsent = !attendanceStore.showOnlyAbsent"
       >
-        {{ attendanceStore.showOnlyAbsent ? 'Все студенты' : 'Только отсутствующие' }}
+        <Filter class="w-3 h-3" />
+        <span>{{ attendanceStore.showOnlyAbsent ? 'Показать всех' : 'Только отсутствующие' }}</span>
       </button>
     </div>
 
-    <div class="flex gap-2">
-      <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-[#ff3b30]/10 text-[#ff3b30]">
-        Н: {{ attendanceStore.countNb }} чел.
-      </span>
-      <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-[#ff9500]/10 text-[#ff9500]">
-        У: {{ attendanceStore.countUv }} чел.
-      </span>
+    <!-- Counters row -->
+    <div class="grid grid-cols-2 gap-2 pt-1">
+      <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+        <span class="text-xs font-bold text-rose-600 dark:text-rose-400">Неуважительная (Н)</span>
+        <span class="text-sm font-black text-rose-600 dark:text-rose-400">{{ attendanceStore.countNb }}</span>
+      </div>
+      <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+        <span class="text-xs font-bold text-amber-600 dark:text-amber-400">Уважительная (У)</span>
+        <span class="text-sm font-black text-amber-600 dark:text-amber-400">{{ attendanceStore.countUv }}</span>
+      </div>
     </div>
   </div>
 </template>

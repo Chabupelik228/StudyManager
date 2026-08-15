@@ -119,7 +119,7 @@ async def update_attendance(
     fmt_date = datetime.strptime(data.date, "%Y-%m-%d").strftime("%d.%m")
     log_details = f"{fmt_date} | {data.time} | {lesson_name}\n{student_name} ➔ {stat_str}"
 
-    background_tasks.add_task(log_action, db, admin_name, "Изменение отметки", log_details)
+    background_tasks.add_task(log_action, db, admin_name, "Изменение отметки", log_details, user_id=user.id)
     return {"status": "ok"}
 
 
@@ -160,5 +160,6 @@ async def update_attendance_day(
     background_tasks.add_task(
         log_action, db, admin_name, "Отметка на весь день",
         f"Студент {student_name} ({data.date}) → {stat_str}",
+        user_id=user.id,
     )
     return {"status": "ok"}
