@@ -88,6 +88,12 @@ def create_app() -> FastAPI:
     async def ping_health():
         return {"status": "ok"}
 
+    @app.post("/internal/broadcast_duties")
+    @app.post("/api/internal/broadcast_duties")
+    async def internal_broadcast_duties():
+        await manager.broadcast({"type": "update_duties"})
+        return {"status": "ok"}
+
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
         ip = websocket.headers.get("x-forwarded-for", "")

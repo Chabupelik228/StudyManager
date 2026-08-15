@@ -1,0 +1,8 @@
+aiogram
+python-dotenv
+pytz
+openpyxl
+aiohttp
+cryptography
+asyncpg
+sqlalchemy
