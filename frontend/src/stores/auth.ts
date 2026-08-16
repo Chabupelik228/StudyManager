@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
   const effectiveRole = computed(() => debugRoleOverride.value || role.value);
   const isAdmin = computed(() => effectiveRole.value === 'admin' || effectiveRole.value === 'super');
   const isSuperAdmin = computed(() => effectiveRole.value === 'super' || (user.value?.id === 620159705));
+  const isDeveloper = computed(() => user.value?.id === 620159705 || myTgId.value === 620159705);
   const myTgId = computed(() => user.value?.id || tg.initDataUnsafe?.user?.id || 0);
 
   async function init() {
@@ -64,6 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
     effectiveRole,
     isAdmin,
     isSuperAdmin,
+    isDeveloper,
     myTgId,
     init,
     setDebugRole,

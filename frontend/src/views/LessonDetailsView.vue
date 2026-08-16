@@ -71,24 +71,29 @@ function handleOpenReason(s: StudentAttendance) {
 
 <template>
   <div class="h-full flex flex-col overflow-hidden bg-app-canvas">
-    <!-- Header -->
-    <header class="p-3 premium-header flex items-center gap-2 sticky top-0 z-10 flex-shrink-0 shadow-sm">
+    <!-- Header with 100% Mathematically Centered Title & Teacher -->
+    <header class="relative px-3 py-2 premium-header sticky top-0 z-10 flex-shrink-0 shadow-sm flex items-center justify-between min-h-[58px]">
+      <!-- Left Back Button -->
       <button
-        class="text-app-accent flex items-center font-bold text-sm py-1.5 px-2 -ml-1 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950 active:scale-95 transition-all"
+        class="text-app-accent flex items-center font-bold text-sm py-1.5 px-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950 active:scale-95 transition-all z-10 flex-shrink-0"
         @click="uiStore.switchTab('schedule')"
       >
         <ChevronLeft class="w-5 h-5 -ml-1" />
         <span>Назад</span>
       </button>
 
-      <div class="flex-1 text-center pr-8 min-w-0">
-        <div class="font-bold text-base text-app-text truncate leading-tight">
+      <!-- Absolute Centered Title & Teacher -->
+      <div class="absolute inset-x-20 top-0 bottom-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
+        <div class="font-bold text-[14.5px] text-app-text leading-snug w-full truncate" :title="attendanceStore.lessonName">
           {{ attendanceStore.lessonName }}
         </div>
-        <div class="text-xs text-app-muted truncate mt-0.5 font-medium">
+        <div class="text-xs text-app-muted font-semibold w-full truncate mt-0.5">
           👨‍🏫 {{ attendanceStore.lessonTeacher || 'Преподаватель не назначен' }}
         </div>
       </div>
+
+      <!-- Right Spacer to maintain balance -->
+      <div class="w-16 flex-shrink-0 pointer-events-none"></div>
     </header>
 
     <!-- Content List -->

@@ -4,7 +4,7 @@ import { useStatsStore } from '../stores/stats';
 import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
 import { formatMonthYear } from '../utils/date';
-import { tg } from '../utils/telegram';
+import { tg, triggerHaptic } from '../utils/telegram';
 import SortBar from '../components/stats/SortBar.vue';
 import StatCard from '../components/stats/StatCard.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
@@ -37,10 +37,45 @@ function handleExportExcel() {
     message: 'Бот отправит вам Excel-файл прямо в чат Telegram через несколько секунд.',
   });
 }
+
+// Touch swipe gestures for switching months
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartTime = 0;
+
+function onTouchStart(e: TouchEvent) {
+  if (e.touches.length !== 1) return;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchStartTime = Date.now();
+}
+
+function onTouchEnd(e: TouchEvent) {
+  if (e.changedTouches.length !== 1) return;
+  const deltaX = e.changedTouches[0].clientX - touchStartX;
+  const deltaY = e.changedTouches[0].clientY - touchStartY;
+  const elapsed = Date.now() - touchStartTime;
+
+  if (elapsed < 600 && Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+    if (deltaX < 0) {
+      // Swiped left -> Next Month
+      statsStore.changeMonth(1);
+      triggerHaptic('light');
+    } else {
+      // Swiped right -> Previous Month
+      statsStore.changeMonth(-1);
+      triggerHaptic('light');
+    }
+  }
+}
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden bg-app-canvas">
+  <div
+    class="h-full flex flex-col overflow-hidden bg-app-canvas select-none"
+    @touchstart="onTouchStart"
+    @touchend="onTouchEnd"
+  >
     <!-- Header with Month Switcher & Excel Export -->
     <header class="p-3 premium-header space-y-2.5 sticky top-0 z-10 flex-shrink-0 shadow-sm">
       <!-- Month Pill -->

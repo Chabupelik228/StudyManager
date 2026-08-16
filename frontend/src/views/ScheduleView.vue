@@ -4,6 +4,7 @@ import { useScheduleStore } from '../stores/schedule';
 import { useAttendanceStore } from '../stores/attendance';
 import { useAuthStore } from '../stores/auth';
 import { useUiStore } from '../stores/ui';
+import { triggerHaptic } from '../utils/telegram';
 import DatePill from '../components/schedule/DatePill.vue';
 import LessonCard from '../components/schedule/LessonCard.vue';
 import AddLessonModal from '../components/schedule/AddLessonModal.vue';
@@ -25,10 +26,46 @@ function openDetails(lesson: any) {
   attendanceStore.loadDetails(lesson.time, lesson.name, lesson.teacher, lesson.canceled);
   uiStore.switchTab('details');
 }
+
+// Touch swipe gestures for switching days
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartTime = 0;
+
+function onTouchStart(e: TouchEvent) {
+  if (e.touches.length !== 1) return;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchStartTime = Date.now();
+}
+
+function onTouchEnd(e: TouchEvent) {
+  if (e.changedTouches.length !== 1) return;
+  const deltaX = e.changedTouches[0].clientX - touchStartX;
+  const deltaY = e.changedTouches[0].clientY - touchStartY;
+  const elapsed = Date.now() - touchStartTime;
+
+  // Horizontal swipe detected
+  if (elapsed < 600 && Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25) {
+    if (deltaX < 0) {
+      // Swiped left -> Next Day
+      scheduleStore.changeDay(1);
+      triggerHaptic('light');
+    } else {
+      // Swiped right -> Previous Day
+      scheduleStore.changeDay(-1);
+      triggerHaptic('light');
+    }
+  }
+}
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden bg-app-canvas">
+  <div
+    class="h-full flex flex-col overflow-hidden bg-app-canvas select-none"
+    @touchstart="onTouchStart"
+    @touchend="onTouchEnd"
+  >
     <!-- Header with Date Pill -->
     <header class="p-3 premium-header sticky top-0 z-10 flex-shrink-0 shadow-sm">
       <DatePill />
@@ -42,7 +79,7 @@ function openDetails(lesson: any) {
       <!-- Empty State -->
       <div
         v-else-if="scheduleStore.lessons.length === 0"
-        class="premium-card rounded-3xl p-8 my-8 text-center flex flex-col items-center justify-center space-y-3"
+        class="premium-card rounded-3xl p-8 my-8 text-center flex flex-col items-center justify-center space-y-3 animate-fade-in"
       >
         <div class="w-14 h-14 rounded-2xl bg-blue-50 text-app-accent dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center mb-1">
           <Sparkles class="w-7 h-7" />
