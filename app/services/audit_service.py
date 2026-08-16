@@ -1,6 +1,6 @@
-from app.core.config import get_settings
 from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.config import get_settings
 from app.repositories.audit_repo import AuditRepository
 from app.websocket.manager import manager
 
@@ -32,5 +32,3 @@ async def log_action(
             "created_at": entry.created_at,
         },
     })
-
-
