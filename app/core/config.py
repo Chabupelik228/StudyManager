@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     curator_id: int = 1331701095
 
     logs_secret_key: str = ""
+    internal_secret: str = ""  # Used to authenticate bot -> backend internal calls
 
     api_keys: str = ""
 

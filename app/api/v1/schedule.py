@@ -1,9 +1,9 @@
 from __future__ import annotations
 from datetime import datetime
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_current_user, require_admin, get_request_details
-from app.db.database import get_db
+from app.db.database import async_session_maker, get_db
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.override_repo import OverrideRepository
 from app.schemas.schedule import OverrideUpdateRequest, ScheduleResponse
@@ -15,12 +15,25 @@ from app.websocket.manager import manager
 router = APIRouter(tags=["schedule"])
 
 
+def _parse_date(date: str) -> datetime:
+    try:
+        return datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {date!r}")
+
+
+async def _log_schedule_action(admin_name: str, action_type: str, details: str, user_id: int) -> None:
+    async with async_session_maker() as session:
+        await log_action(session, admin_name, action_type, details, user_id=user_id)
+
+
 @router.get("/schedule", response_model=ScheduleResponse)
 async def get_schedule(
     date: str,
     user: UserContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    _parse_date(date)  # validate
     now = datetime.now(MSK)
     current_date_str = now.strftime("%Y-%m-%d")
     current_time_str = now.strftime("%H:%M") if date == current_date_str else None
@@ -63,9 +76,9 @@ async def update_override(
     admin_name = get_display_name(user)
     action = "Отмена пары" if data.is_canceled else "Замена пары"
     background_tasks.add_task(
-        log_action, db, admin_name, action,
+        _log_schedule_action, admin_name, action,
         f"{data.date} {data.time} → {data.new_name}",
-        user_id=user.id,
+        user.id,
     )
 
     return {"status": "ok"}

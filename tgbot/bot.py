@@ -55,11 +55,14 @@ PROCESSED_VK_MSGS = set()
 
 # PostgreSQL settings
 POSTGRES_USER = os.getenv("POSTGRES_USER", "studymanager")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "StudyManager2024!Secure")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+if not POSTGRES_PASSWORD:
+    raise RuntimeError("POSTGRES_PASSWORD environment variable is required but not set")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "studymanager_db")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "db")
 POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", 5432))
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
+
 
 # Database Pool
 db_pool: asyncpg.Pool | None = None

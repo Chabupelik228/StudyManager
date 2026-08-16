@@ -1,11 +1,11 @@
 from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_current_user, require_admin
 from app.core.config import get_settings
-from app.db.database import get_db
+from app.db.database import async_session_maker, get_db
 from app.integrations import telegram, vk
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.duty_repo import DutyRepository
@@ -23,6 +23,11 @@ from app.websocket.manager import manager
 from app.data.students_data import EXCLUDED_DUTY_STUDENT_IDS
 
 router = APIRouter(tags=["duties"])
+
+
+async def _log_duties_action(admin_name: str, action_type: str, details: str, user_id: int) -> None:
+    async with async_session_maker() as session:
+        await log_action(session, admin_name, action_type, details, user_id=user_id)
 
 
 @router.get("/duties", response_model=DutiesResponse)
@@ -128,9 +133,9 @@ async def assign_duties(
 
     short_names = ", ".join(n.split()[0] for n in assigned_names)
     background_tasks.add_task(
-        log_action, db, admin_name, "Назначение дежурных",
+        _log_duties_action, admin_name, "Назначение дежурных",
         f"Дата: {data.date}. Дежурят: {short_names}",
-        user_id=user.id,
+        user.id,
     )
     return {"status": "ok"}
 

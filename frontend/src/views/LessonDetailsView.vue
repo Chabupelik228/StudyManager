@@ -9,6 +9,7 @@ import AttendanceSummary from '../components/attendance/AttendanceSummary.vue';
 import ReasonModal from '../components/attendance/ReasonModal.vue';
 import Modal from '../components/common/Modal.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
+import MarqueeText from '../components/common/MarqueeText.vue';
 import { ChevronLeft, Edit2, Ban, RotateCcw } from 'lucide-vue-next';
 import type { StudentAttendance } from '../types/attendance';
 
@@ -84,10 +85,13 @@ function handleOpenReason(s: StudentAttendance) {
 
       <!-- Absolute Centered Title & Teacher -->
       <div class="absolute inset-x-20 top-0 bottom-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
-        <div class="font-bold text-[14.5px] text-app-text leading-snug w-full truncate" :title="attendanceStore.lessonName">
-          {{ attendanceStore.lessonName }}
-        </div>
-        <div class="text-xs text-app-muted font-semibold w-full truncate mt-0.5">
+        <MarqueeText
+          :text="attendanceStore.lessonName"
+          class="font-bold text-[14.5px] text-app-text leading-snug w-full"
+          :speed="35"
+          :pause-ms="1200"
+        />
+        <div class="text-xs text-app-muted font-semibold w-full mt-0.5 truncate text-center">
           👨‍🏫 {{ attendanceStore.lessonTeacher || 'Преподаватель не назначен' }}
         </div>
       </div>

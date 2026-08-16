@@ -1,9 +1,9 @@
 from __future__ import annotations
 from datetime import datetime
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_current_user, require_admin
-from app.db.database import get_db
+from app.db.database import async_session_maker, get_db
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.override_repo import OverrideRepository
 from app.schemas.attendance import AttendanceUpdateRequest, LessonDetailsResponse
@@ -18,6 +18,14 @@ from app.websocket.manager import manager
 router = APIRouter(tags=["attendance"])
 
 
+def _parse_date(date: str) -> datetime:
+    """Validate and parse a YYYY-MM-DD date string. Raises 400 on invalid format."""
+    try:
+        return datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid date format: {date!r}. Expected YYYY-MM-DD.")
+
+
 @router.get("/lesson_details", response_model=LessonDetailsResponse)
 async def get_lesson_details(
     date: str,
@@ -25,6 +33,8 @@ async def get_lesson_details(
     user: UserContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    _parse_date(date)  # validate
+
     att_repo = AttendanceRepository(db)
     ovr_repo = OverrideRepository(db)
 
@@ -67,6 +77,12 @@ async def get_lesson_details(
     return LessonDetailsResponse(students=result)
 
 
+async def _log_attendance_action(admin_name: str, action_type: str, details: str, user_id: int) -> None:
+    """Runs log_action inside a fresh DB session — safe for background tasks."""
+    async with async_session_maker() as session:
+        await log_action(session, admin_name, action_type, details, user_id=user_id)
+
+
 @router.post("/attendance")
 async def update_attendance(
     data: AttendanceUpdateRequest,
@@ -74,6 +90,8 @@ async def update_attendance(
     user: UserContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    _parse_date(data.date)  # validate
+
     att_repo = AttendanceRepository(db)
     ovr_repo = OverrideRepository(db)
 
@@ -119,7 +137,7 @@ async def update_attendance(
     fmt_date = datetime.strptime(data.date, "%Y-%m-%d").strftime("%d.%m")
     log_details = f"{fmt_date} | {data.time} | {lesson_name}\n{student_name} ➔ {stat_str}"
 
-    background_tasks.add_task(log_action, db, admin_name, "Изменение отметки", log_details, user_id=user.id)
+    background_tasks.add_task(_log_attendance_action, admin_name, "Изменение отметки", log_details, user.id)
     return {"status": "ok"}
 
 
@@ -130,6 +148,8 @@ async def update_attendance_day(
     user: UserContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    _parse_date(data.date)  # validate
+
     att_repo = AttendanceRepository(db)
     ovr_repo = OverrideRepository(db)
 
@@ -158,8 +178,8 @@ async def update_attendance_day(
     student_name = get_name_by_student_id(data.student_id)
     stat_str = "Н" if data.status == 1 else "У" if data.status == 2 else "Присутствует"
     background_tasks.add_task(
-        log_action, db, admin_name, "Отметка на весь день",
+        _log_attendance_action, admin_name, "Отметка на весь день",
         f"Студент {student_name} ({data.date}) → {stat_str}",
-        user_id=user.id,
+        user.id,
     )
     return {"status": "ok"}

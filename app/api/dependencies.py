@@ -5,10 +5,11 @@ from app.core.config import get_settings
 from app.core.security import decode_access_token, validate_tg_init_data
 from app.services.user_service import UserContext
 
-_membership_cache: dict[int, tuple[float, bool]] = {
-    7397522369: (time.time(), True)
-}
 _CACHE_TTL = 3600
+_AUTH_DATE_MAX_AGE = 86400  # 24 hours — Telegram recommendation
+
+# Pre-warm membership cache with trusted user IDs from config at startup
+_membership_cache: dict[int, tuple[float, bool]] = {}
 
 
 async def get_current_user(
@@ -19,6 +20,15 @@ async def get_current_user(
     if x_tg_data:
         user_dict = validate_tg_init_data(x_tg_data)
         if user_dict and user_dict.get("id"):
+            # Check that initData is fresh (max 24h per Telegram recommendation)
+            auth_date = user_dict.get("auth_date")
+            if auth_date:
+                try:
+                    age = time.time() - int(auth_date)
+                    if age > _AUTH_DATE_MAX_AGE:
+                        raise HTTPException(status_code=401, detail="Telegram initData expired")
+                except (ValueError, TypeError):
+                    pass  # non-critical if auth_date is malformed
             return UserContext(
                 id=int(user_dict["id"]),
                 first_name=user_dict.get("first_name", ""),
@@ -40,7 +50,8 @@ async def get_current_user(
 
 
 async def require_admin(user: UserContext = Depends(get_current_user)) -> UserContext:
-    if user.id not in get_settings().admin_ids_list:
+    settings = get_settings()
+    if user.id not in settings.admin_ids_list and user.id != settings.developer_id:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 

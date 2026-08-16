@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -90,7 +90,16 @@ def create_app() -> FastAPI:
 
     @app.post("/internal/broadcast_duties")
     @app.post("/api/internal/broadcast_duties")
-    async def internal_broadcast_duties():
+    async def internal_broadcast_duties(
+        x_internal_secret: str | None = None,
+        request: Request = None,
+    ):
+        settings = get_settings()
+        # Require a shared secret from the bot to prevent public abuse
+        secret = request.headers.get("X-Internal-Secret", "") if request else ""
+        if settings.internal_secret and secret != settings.internal_secret:
+            from fastapi.responses import JSONResponse
+            return JSONResponse({"error": "Forbidden"}, status_code=403)
         await manager.broadcast({"type": "update_duties"})
         return {"status": "ok"}
 

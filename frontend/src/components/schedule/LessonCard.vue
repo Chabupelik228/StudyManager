@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Lesson } from '../../types/schedule';
+import MarqueeText from '../common/MarqueeText.vue';
 import { ChevronRight, Clock, User, CheckCircle2, AlertCircle } from 'lucide-vue-next';
 
 defineProps<{
@@ -39,14 +40,13 @@ const emit = defineEmits<{
 
     <!-- Lesson Info with multi-line full title display -->
     <div class="flex-1 min-w-0 pr-1">
-      <div class="flex items-start gap-1.5">
-        <h3
-          class="text-[14.5px] font-bold tracking-tight text-app-text line-clamp-2 leading-snug break-words"
-          :class="{ 'line-through opacity-70': lesson.canceled }"
-          :title="lesson.name"
-        >
-          {{ lesson.name }}
-        </h3>
+      <div class="flex items-start gap-1.5" :class="{ 'line-through opacity-70': lesson.canceled }">
+        <MarqueeText
+          :text="lesson.name"
+          class="text-[14.5px] font-bold tracking-tight text-app-text leading-snug flex-1 min-w-0"
+          :speed="38"
+          :pause-ms="1000"
+        />
         <span
           v-if="lesson.canceled"
           class="text-[9.5px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800 flex-shrink-0"
