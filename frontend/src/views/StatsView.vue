@@ -40,24 +40,26 @@ function handleExportExcel() {
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden bg-app-canvas">
     <!-- Header with Month Switcher & Excel Export -->
-    <header class="p-3 glass-header space-y-2.5 sticky top-0 z-10 flex-shrink-0">
+    <header class="p-3 premium-header space-y-2.5 sticky top-0 z-10 flex-shrink-0 shadow-sm">
       <!-- Month Pill -->
-      <div class="bg-black/5 dark:bg-white/10 rounded-2xl p-1 flex items-center justify-between">
+      <div class="bg-app-card-subtle border border-app-border rounded-2xl p-1 flex items-center justify-between shadow-sm">
         <button
-          class="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 text-tg-text flex items-center justify-center font-bold shadow-sm active:scale-95 transition-all"
+          class="w-8 h-8 rounded-xl bg-app-card border border-app-border text-app-text flex items-center justify-center font-bold shadow-sm active:scale-95 transition-all"
+          title="Предыдущий месяц"
           @click="statsStore.changeMonth(-1)"
         >
           <ChevronLeft class="w-4 h-4" />
         </button>
 
-        <div class="text-sm font-bold capitalize px-2 text-center select-none text-tg-text">
+        <div class="text-sm font-bold capitalize px-2 text-center select-none text-app-text">
           {{ formattedMonth }}
         </div>
 
         <button
-          class="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 text-tg-text flex items-center justify-center font-bold shadow-sm active:scale-95 transition-all"
+          class="w-8 h-8 rounded-xl bg-app-card border border-app-border text-app-text flex items-center justify-center font-bold shadow-sm active:scale-95 transition-all"
+          title="Следующий месяц"
           @click="statsStore.changeMonth(1)"
         >
           <ChevronRight class="w-4 h-4" />
@@ -67,7 +69,7 @@ function handleExportExcel() {
       <!-- Excel Export Button for Admins -->
       <button
         v-if="authStore.isAdmin"
-        class="w-full py-2 px-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-sm hover:bg-emerald-500/15"
+        class="w-full py-2 px-3 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-sm hover:brightness-105"
         @click="handleExportExcel"
       >
         <FileSpreadsheet class="w-4 h-4" />
@@ -81,7 +83,7 @@ function handleExportExcel() {
     <!-- Stats Cards List -->
     <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-28">
       <!-- Loading Skeleton -->
-      <SkeletonLoader v-if="statsStore.loading" type="card" :count="5" />
+      <SkeletonLoader v-if="statsStore.loading" type="stat" :count="4" />
 
       <!-- Actual Stats -->
       <template v-else>

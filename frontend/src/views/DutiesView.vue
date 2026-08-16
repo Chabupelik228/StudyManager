@@ -26,16 +26,16 @@ async function handleSaveDuties() {
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden bg-app-canvas">
     <!-- Header with Date Picker -->
-    <header class="p-3.5 glass-header flex items-center justify-between sticky top-0 z-10 flex-shrink-0">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-xl bg-[#007aff]/10 text-[#007aff] flex items-center justify-center">
+    <header class="p-3.5 premium-header flex items-center justify-between sticky top-0 z-10 flex-shrink-0 shadow-sm">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-blue-50 text-app-accent dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800">
           <Calendar class="w-4 h-4" />
         </div>
         <div>
-          <div class="font-bold text-[15px] text-tg-text leading-tight">График дежурств</div>
-          <div class="text-[11px] text-tg-hint">
+          <div class="font-bold text-[15px] text-app-text leading-tight">График дежурств</div>
+          <div class="text-[11px] text-app-muted font-medium">
             {{ authStore.isAdmin ? 'Выберите студентов для назначения' : 'Очередь дежурных' }}
           </div>
         </div>
@@ -45,7 +45,7 @@ async function handleSaveDuties() {
         v-if="authStore.isAdmin"
         v-model="dutyStore.dutyDate"
         type="date"
-        class="bg-black/5 dark:bg-white/10 text-[#007aff] font-bold text-xs p-2 rounded-xl border border-black/5 dark:border-white/10 outline-none focus:ring-2 focus:ring-[#007aff]"
+        class="bg-app-card-subtle text-app-accent font-bold text-xs p-2 rounded-xl border border-app-border outline-none focus:ring-2 focus:ring-app-accent"
       />
     </header>
 
@@ -57,7 +57,7 @@ async function handleSaveDuties() {
       <!-- Students List Container -->
       <div
         v-else
-        class="glass-card rounded-3xl overflow-hidden shadow-sm"
+        class="premium-card rounded-2xl overflow-hidden shadow-sm"
       >
         <DutyStudentRow
           v-for="s in dutyStore.duties"
@@ -73,7 +73,7 @@ async function handleSaveDuties() {
     <!-- Floating Save Button -->
     <button
       v-if="authStore.isAdmin && dutyStore.selectedStudentIds.length > 0"
-      class="fixed bottom-20 right-5 px-5 h-14 rounded-2xl bg-gradient-to-tr from-[#0062cc] to-[#007aff] text-white flex items-center justify-center gap-2 font-bold text-sm shadow-xl active:scale-95 transition-all z-20 glow-blue"
+      class="fixed bottom-20 right-5 px-5 h-14 rounded-2xl bg-app-accent text-white flex items-center justify-center gap-2 font-bold text-sm shadow-xl active:scale-95 transition-all z-20 shadow-glow-blue"
       :disabled="dutyStore.saving"
       @click="handleSaveDuties"
     >

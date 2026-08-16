@@ -70,11 +70,11 @@ function handleOpenReason(s: StudentAttendance) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden bg-app-canvas">
     <!-- Header -->
-    <header class="p-3 glass-header flex items-center gap-2 sticky top-0 z-10 flex-shrink-0">
+    <header class="p-3 premium-header flex items-center gap-2 sticky top-0 z-10 flex-shrink-0 shadow-sm">
       <button
-        class="text-[#007aff] flex items-center font-semibold text-sm py-1.5 px-2 -ml-1 rounded-xl hover:bg-[#007aff]/10 active:scale-95 transition-all"
+        class="text-app-accent flex items-center font-bold text-sm py-1.5 px-2 -ml-1 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950 active:scale-95 transition-all"
         @click="uiStore.switchTab('schedule')"
       >
         <ChevronLeft class="w-5 h-5 -ml-1" />
@@ -82,10 +82,10 @@ function handleOpenReason(s: StudentAttendance) {
       </button>
 
       <div class="flex-1 text-center pr-8 min-w-0">
-        <div class="font-bold text-base text-tg-text truncate leading-tight">
+        <div class="font-bold text-base text-app-text truncate leading-tight">
           {{ attendanceStore.lessonName }}
         </div>
-        <div class="text-xs text-tg-hint truncate mt-0.5">
+        <div class="text-xs text-app-muted truncate mt-0.5 font-medium">
           👨‍🏫 {{ attendanceStore.lessonTeacher || 'Преподаватель не назначен' }}
         </div>
       </div>
@@ -96,18 +96,18 @@ function handleOpenReason(s: StudentAttendance) {
       <!-- Admin Tools Box -->
       <div v-if="authStore.isAdmin" class="flex gap-2">
         <button
-          class="flex-1 py-2.5 px-3 rounded-2xl glass-card text-tg-text font-semibold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all hover:border-[#007aff]/30"
+          class="flex-1 py-2.5 px-3 rounded-xl premium-card text-app-text font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm"
           @click="openRename"
         >
           <Edit2 class="w-3.5 h-3.5 opacity-70" />
           <span>Изменить пару</span>
         </button>
         <button
-          class="flex-1 py-2.5 px-3 rounded-2xl font-semibold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm"
+          class="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm"
           :class="
             attendanceStore.isCanceled
-              ? 'glass-card text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+              ? 'premium-card text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+              : 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
           "
           @click="toggleCancelLesson"
         >
@@ -121,7 +121,7 @@ function handleOpenReason(s: StudentAttendance) {
       <AttendanceSummary />
 
       <!-- Student Rows Card Container -->
-      <div class="glass-card rounded-3xl overflow-hidden">
+      <div class="premium-card rounded-2xl overflow-hidden shadow-sm">
         <div v-if="attendanceStore.loading" class="p-3">
           <SkeletonLoader type="row" :count="6" />
         </div>
@@ -145,32 +145,32 @@ function handleOpenReason(s: StudentAttendance) {
     <Modal :show="showRenameModal" title="Редактировать пару" @close="showRenameModal = false">
       <div class="space-y-3">
         <div>
-          <label class="text-xs text-tg-hint font-medium mb-1 block">Название предмета</label>
+          <label class="text-xs text-app-muted font-bold mb-1 block">Название предмета</label>
           <input
             v-model="renameName"
             type="text"
-            class="w-full p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-tg-text text-sm focus:ring-2 focus:ring-[#007aff] outline-none"
+            class="w-full p-3 rounded-xl bg-app-card-subtle border border-app-border text-app-text text-sm focus:ring-2 focus:ring-app-accent outline-none"
           />
         </div>
 
         <div>
-          <label class="text-xs text-tg-hint font-medium mb-1 block">Преподаватель</label>
+          <label class="text-xs text-app-muted font-bold mb-1 block">Преподаватель</label>
           <input
             v-model="renameTeacher"
             type="text"
-            class="w-full p-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-tg-text text-sm focus:ring-2 focus:ring-[#007aff] outline-none"
+            class="w-full p-3 rounded-xl bg-app-card-subtle border border-app-border text-app-text text-sm focus:ring-2 focus:ring-app-accent outline-none"
           />
         </div>
 
         <div class="flex gap-2 pt-2">
           <button
-            class="flex-1 py-3 rounded-xl bg-black/5 dark:bg-white/10 text-tg-text font-semibold active:scale-95 transition-all"
+            class="flex-1 py-3 rounded-xl bg-app-card-subtle border border-app-border text-app-text font-bold active:scale-95 transition-all"
             @click="showRenameModal = false"
           >
             Отмена
           </button>
           <button
-            class="flex-1 py-3 rounded-xl bg-[#007aff] text-white font-semibold shadow-md active:scale-95 transition-all glow-blue"
+            class="flex-1 py-3 rounded-xl bg-app-accent text-white font-bold shadow-md active:scale-95 transition-all shadow-glow-blue"
             @click="handleSaveRename"
           >
             Сохранить

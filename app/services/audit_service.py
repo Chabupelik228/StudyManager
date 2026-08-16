@@ -1,3 +1,4 @@
+from app.core.config import get_settings
 from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.audit_repo import AuditRepository

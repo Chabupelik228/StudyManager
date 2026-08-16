@@ -23,18 +23,18 @@ async function handleDeleteLog(id: number) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden bg-app-canvas">
     <!-- Header -->
-    <header class="p-3.5 glass-header text-center font-bold text-base text-tg-text sticky top-0 z-10 flex-shrink-0">
+    <header class="p-3.5 premium-header text-center font-extrabold text-base text-app-text sticky top-0 z-10 flex-shrink-0 shadow-sm">
       Панель управления
     </header>
 
     <!-- Scrollable content -->
     <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
       <!-- Section 1: Admins Network -->
-      <div class="glass-card rounded-3xl p-4 space-y-3">
-        <div class="flex items-center gap-2 text-xs font-bold text-tg-hint uppercase tracking-wider">
-          <Shield class="w-3.5 h-3.5 text-[#007aff]" />
+      <div class="premium-card rounded-2xl p-4 space-y-3">
+        <div class="flex items-center gap-2 text-xs font-bold text-app-muted uppercase tracking-wider">
+          <Shield class="w-3.5 h-3.5 text-app-accent" />
           <span>Сеть администраторов</span>
         </div>
 
@@ -50,14 +50,14 @@ async function handleDeleteLog(id: number) {
       </div>
 
       <!-- Section 2: Action Logs -->
-      <div class="glass-card rounded-3xl p-4 space-y-3">
+      <div class="premium-card rounded-2xl p-4 space-y-3">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2 text-xs font-bold text-tg-hint uppercase tracking-wider">
+          <div class="flex items-center gap-2 text-xs font-bold text-app-muted uppercase tracking-wider">
             <History class="w-3.5 h-3.5 text-amber-500" />
             <span>Журнал действий</span>
           </div>
           <button
-            class="text-tg-hint hover:text-tg-text p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+            class="text-app-muted hover:text-app-text p-1.5 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-all"
             title="Обновить журнал"
             @click="adminStore.loadLogs(true)"
           >
@@ -69,7 +69,7 @@ async function handleDeleteLog(id: number) {
         <LogFilters />
 
         <!-- Logs list -->
-        <div v-if="adminStore.logs.length === 0 && !adminStore.loadingLogs" class="text-center py-8 text-tg-hint text-xs">
+        <div v-if="adminStore.logs.length === 0 && !adminStore.loadingLogs" class="text-center py-8 text-app-muted text-xs font-medium">
           Записей в журнале нет
         </div>
 
@@ -85,7 +85,7 @@ async function handleDeleteLog(id: number) {
         <!-- Load More Button -->
         <button
           v-if="adminStore.hasMoreLogs"
-          class="w-full py-2.5 mt-2 rounded-2xl bg-black/5 dark:bg-white/10 text-tg-text text-xs font-bold hover:bg-black/10 dark:hover:bg-white/15 active:scale-98 transition-all"
+          class="w-full py-2.5 mt-2 rounded-xl bg-app-card-subtle border border-app-border text-app-text text-xs font-bold hover:bg-slate-200/60 dark:hover:bg-slate-800 active:scale-98 transition-all"
           :disabled="adminStore.loadingLogs"
           @click="adminStore.loadLogs(false)"
         >

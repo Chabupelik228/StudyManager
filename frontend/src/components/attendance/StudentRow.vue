@@ -27,25 +27,25 @@ function handleStatusClick() {
 
 <template>
   <div
-    class="flex items-center justify-between p-3.5 bg-white/70 dark:bg-zinc-900/60 border-b border-black/[0.04] dark:border-white/[0.06] first:rounded-t-2xl last:rounded-b-2xl last:border-b-0 transition-colors duration-150"
-    :class="{ 'bg-[#007aff]/[0.06] dark:bg-[#007aff]/10 border-l-4 !border-l-[#007aff] pl-2.5': isMe }"
+    class="flex items-center justify-between p-3.5 bg-app-card border-b border-app-border first:rounded-t-2xl last:rounded-b-2xl last:border-b-0 transition-colors duration-150"
+    :class="{ 'bg-blue-50/50 dark:bg-blue-950/30 border-l-4 !border-l-app-accent pl-2.5': isMe }"
   >
     <!-- Left: Avatar and Info -->
     <div class="flex items-center gap-3 min-w-0 flex-1 mr-2">
       <Avatar :tg-id="student.tg_id" :name="student.name" size="md" />
 
       <div class="min-w-0 flex-1">
-        <div class="font-semibold text-[15px] text-tg-text flex items-center gap-1.5 truncate">
+        <div class="font-bold text-[15px] text-app-text flex items-center gap-1.5 truncate">
           <span class="truncate">{{ student.name }}</span>
           <span
             v-if="isMe"
-            class="bg-gradient-to-r from-[#0062cc] to-[#007aff] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full tracking-wider uppercase shadow-sm"
+            class="bg-app-accent text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase shadow-sm"
           >
             Я
           </span>
           <span
             v-if="student.is_all_day"
-            class="bg-black/5 dark:bg-white/10 text-tg-hint text-[9.5px] font-bold px-1.5 py-0.5 rounded-md uppercase"
+            class="bg-app-canvas text-app-muted text-[9.5px] font-bold px-1.5 py-0.5 rounded border border-app-border uppercase"
           >
             Весь день
           </span>
@@ -53,11 +53,11 @@ function handleStatusClick() {
 
         <div
           v-if="student.status > 0"
-          class="text-xs font-medium truncate mt-1 flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-80"
-          :class="student.reason ? 'text-amber-500 dark:text-amber-400' : 'text-tg-hint hover:text-tg-text'"
+          class="text-xs font-semibold truncate mt-1 flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-80"
+          :class="student.reason ? 'text-amber-600 dark:text-amber-400' : 'text-app-hint hover:text-app-text'"
           @click="authStore.isAdmin ? emit('openReason', student) : null"
         >
-          <Edit3 v-if="authStore.isAdmin" class="w-3 h-3 flex-shrink-0 opacity-60" />
+          <Edit3 v-if="authStore.isAdmin" class="w-3 h-3 flex-shrink-0 opacity-70" />
           <span class="truncate">{{ student.reason || '+ Добавить причину' }}</span>
         </div>
       </div>
@@ -66,18 +66,18 @@ function handleStatusClick() {
     <!-- Right: Status Button -->
     <div class="flex items-center">
       <button
-        class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-200 select-none shadow-sm"
+        class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-150 select-none shadow-sm"
         :class="{
-          'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25': student.status === 0,
-          'bg-rose-500 text-white font-black glow-rose scale-105': student.status === 1,
-          'bg-amber-500 text-white font-black glow-amber scale-105': student.status === 2,
+          'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800': student.status === 0,
+          'bg-rose-500 text-white font-black shadow-glow-rose': student.status === 1,
+          'bg-amber-500 text-white font-black shadow-glow-amber': student.status === 2,
           'cursor-pointer active:scale-90 hover:brightness-105': authStore.isAdmin,
           'cursor-default opacity-80': !authStore.isAdmin,
         }"
         :disabled="!authStore.isAdmin"
         @click="handleStatusClick"
       >
-        <Check v-if="student.status === 0" class="w-4 h-4 stroke-[2.5]" />
+        <Check v-if="student.status === 0" class="w-4 h-4 stroke-[3]" />
         <span v-else-if="student.status === 1">Н</span>
         <span v-else-if="student.status === 2">У</span>
       </button>

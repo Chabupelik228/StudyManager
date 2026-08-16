@@ -28,27 +28,27 @@ function openDetails(lesson: any) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden bg-app-canvas">
     <!-- Header with Date Pill -->
-    <header class="p-3 glass-header sticky top-0 z-10 flex-shrink-0">
+    <header class="p-3 premium-header sticky top-0 z-10 flex-shrink-0 shadow-sm">
       <DatePill />
     </header>
 
     <!-- Lessons List with inner scrolling -->
     <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-28">
-      <!-- Loading Skeleton with Shimmer -->
+      <!-- Loading Skeleton -->
       <SkeletonLoader v-if="scheduleStore.loading" type="card" :count="3" />
 
       <!-- Empty State -->
       <div
         v-else-if="scheduleStore.lessons.length === 0"
-        class="glass-card rounded-3xl p-8 my-8 text-center flex flex-col items-center justify-center space-y-3"
+        class="premium-card rounded-3xl p-8 my-8 text-center flex flex-col items-center justify-center space-y-3"
       >
-        <div class="w-14 h-14 rounded-2xl bg-[#007aff]/10 text-[#007aff] flex items-center justify-center mb-1">
+        <div class="w-14 h-14 rounded-2xl bg-blue-50 text-app-accent dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center mb-1">
           <Sparkles class="w-7 h-7" />
         </div>
-        <h3 class="text-base font-bold text-tg-text">Выходной день!</h3>
-        <p class="text-xs text-tg-hint max-w-[220px]">
+        <h3 class="text-base font-bold text-app-text">Выходной день</h3>
+        <p class="text-xs text-app-muted max-w-[220px]">
           На выбранную дату пары не запланированы. Можно отдохнуть 🎉
         </p>
       </div>
@@ -67,7 +67,8 @@ function openDetails(lesson: any) {
     <!-- Floating Add Button for Admins -->
     <button
       v-if="authStore.isAdmin"
-      class="fixed bottom-20 right-5 w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#0062cc] to-[#007aff] text-white flex items-center justify-center shadow-lg active:scale-95 transition-all z-20 glow-blue"
+      class="fixed bottom-20 right-5 w-14 h-14 rounded-2xl bg-app-accent text-white flex items-center justify-center shadow-xl active:scale-95 transition-all z-20 shadow-glow-blue"
+      title="Добавить или заменить пару"
       @click="showAddModal = true"
     >
       <Plus class="w-7 h-7" />
