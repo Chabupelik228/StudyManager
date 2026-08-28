@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 from datetime import datetime
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.dependencies import get_current_user, require_admin
 from app.db.database import async_session_maker, get_db
 from app.repositories.attendance_repo import AttendanceRepository
@@ -12,7 +15,12 @@ from app.services.schedule_service import (
     compute_active_times,
     get_base_times_for_date,
 )
-from app.services.user_service import UserContext, get_all_students_with_tg, get_display_name, get_name_by_student_id
+from app.services.user_service import (
+    UserContext,
+    get_all_students_with_tg,
+    get_display_name,
+    get_name_by_student_id,
+)
 from app.websocket.manager import manager
 
 router = APIRouter(tags=["attendance"])
@@ -23,7 +31,10 @@ def _parse_date(date: str) -> datetime:
     try:
         return datetime.strptime(date, "%Y-%m-%d")
     except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid date format: {date!r}. Expected YYYY-MM-DD.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid date format: {date!r}. Expected YYYY-MM-DD.",
+        )
 
 
 @router.get("/lesson_details", response_model=LessonDetailsResponse)
@@ -65,19 +76,23 @@ async def get_lesson_details(
             matches = sum(1 for t in active_times if marks.get(t, 0) == curr_status)
             is_all_day = matches == len(active_times)
 
-        result.append({
-            "id": s_id,
-            "tg_id": s["tg_id"],
-            "name": s["name"],
-            "status": curr_status,
-            "reason": curr_reason,
-            "is_all_day": is_all_day,
-        })
+        result.append(
+            {
+                "id": s_id,
+                "tg_id": s["tg_id"],
+                "name": s["name"],
+                "status": curr_status,
+                "reason": curr_reason,
+                "is_all_day": is_all_day,
+            }
+        )
 
     return LessonDetailsResponse(students=result)
 
 
-async def _log_attendance_action(admin_name: str, action_type: str, details: str, user_id: int) -> None:
+async def _log_attendance_action(
+    admin_name: str, action_type: str, details: str, user_id: int
+) -> None:
     """Runs log_action inside a fresh DB session — safe for background tasks."""
     async with async_session_maker() as session:
         await log_action(session, admin_name, action_type, details, user_id=user_id)
@@ -111,10 +126,15 @@ async def update_attendance(
     else:
         weekday = datetime.strptime(data.date, "%Y-%m-%d").weekday()
         from app.data.schedule_data import BASE_SCHEDULE
+
         found = next(
-            (l["name"] for l in BASE_SCHEDULE
-             if l["day"] == weekday and l["time"] == data.time
-             and l["start"] <= data.date <= l["end"]),
+            (
+                l["name"]
+                for l in BASE_SCHEDULE
+                if l["day"] == weekday
+                and l["time"] == data.time
+                and l["start"] <= data.date <= l["end"]
+            ),
             None,
         )
         if found:
@@ -122,22 +142,28 @@ async def update_attendance(
 
     await db.commit()
 
-    await manager.broadcast({
-        "type": "update_attendance",
-        "date": data.date,
-        "time": data.time,
-        "student_id": data.student_id,
-        "status": data.status,
-        "reason": data.reason,
-    })
+    await manager.broadcast(
+        {
+            "type": "update_attendance",
+            "date": data.date,
+            "time": data.time,
+            "student_id": data.student_id,
+            "status": data.status,
+            "reason": data.reason,
+        }
+    )
 
     admin_name = get_display_name(user)
     stat_str = "Н" if data.status == 1 else "У" if data.status == 2 else "Присутствует"
     student_name = get_name_by_student_id(data.student_id)
     fmt_date = datetime.strptime(data.date, "%Y-%m-%d").strftime("%d.%m")
-    log_details = f"{fmt_date} | {data.time} | {lesson_name}\n{student_name} ➔ {stat_str}"
+    log_details = (
+        f"{fmt_date} | {data.time} | {lesson_name}\n{student_name} ➔ {stat_str}"
+    )
 
-    background_tasks.add_task(_log_attendance_action, admin_name, "Изменение отметки", log_details, user.id)
+    background_tasks.add_task(
+        _log_attendance_action, admin_name, "Изменение отметки", log_details, user.id
+    )
     return {"status": "ok"}
 
 
@@ -168,17 +194,21 @@ async def update_attendance_day(
 
     await db.commit()
 
-    await manager.broadcast({
-        "type": "update_day",
-        "date": data.date,
-        "student_id": data.student_id,
-    })
+    await manager.broadcast(
+        {
+            "type": "update_day",
+            "date": data.date,
+            "student_id": data.student_id,
+        }
+    )
 
     admin_name = get_display_name(user)
     student_name = get_name_by_student_id(data.student_id)
     stat_str = "Н" if data.status == 1 else "У" if data.status == 2 else "Присутствует"
     background_tasks.add_task(
-        _log_attendance_action, admin_name, "Отметка на весь день",
+        _log_attendance_action,
+        admin_name,
+        "Отметка на весь день",
         f"Студент {student_name} ({data.date}) → {stat_str}",
         user.id,
     )

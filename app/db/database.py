@@ -1,11 +1,14 @@
 from __future__ import annotations
+
 from collections.abc import AsyncGenerator
 from typing import Annotated
+
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
 from app.core.config import get_settings
 
 _settings = get_settings()

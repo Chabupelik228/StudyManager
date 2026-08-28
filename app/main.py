@@ -1,11 +1,13 @@
 from __future__ import annotations
-import asyncio
+
 import logging
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
+
 from app.api.v1 import admin, attendance, auth, duties, schedule, stats
 from app.core.config import get_settings
 from app.core.security import validate_tg_init_data
@@ -24,7 +26,7 @@ async def lifespan(app: FastAPI):
     try:
         async with engine.begin() as conn:
             from app.models.base import Base
-            import app.models  # ensure all models are registered
+
             await conn.run_sync(Base.metadata.create_all)
         logger.info("✅ Database tables initialized")
     except Exception as e:
@@ -92,13 +94,12 @@ def create_app() -> FastAPI:
     @app.post("/api/internal/broadcast_duties")
     async def internal_broadcast_duties(
         x_internal_secret: str | None = None,
-        request: Request = None,
+        request: Request | None = None
     ):
         settings = get_settings()
         # Require a shared secret from the bot to prevent public abuse
         secret = request.headers.get("X-Internal-Secret", "") if request else ""
         if settings.internal_secret and secret != settings.internal_secret:
-            from fastapi.responses import JSONResponse
             return JSONResponse({"error": "Forbidden"}, status_code=403)
         await manager.broadcast({"type": "update_duties"})
         return {"status": "ok"}
@@ -120,8 +121,10 @@ def create_app() -> FastAPI:
             if not tg_user:
                 async with async_session_maker() as session:
                     await log_action(
-                        session, "System", "WS Auth Failed",
-                        f"IP: {ip}, Agent: {user_agent}"
+                        session,
+                        "System",
+                        "WS Auth Failed",
+                        f"IP: {ip}, Agent: {user_agent}",
                     )
                 await websocket.close(code=1008)
                 return
@@ -135,8 +138,7 @@ def create_app() -> FastAPI:
 
             async with async_session_maker() as session:
                 await log_action(
-                    session, user_name, "WS Connected",
-                    f"IP: {ip}, Agent: {user_agent}"
+                    session, user_name, "WS Connected", f"IP: {ip}, Agent: {user_agent}"
                 )
 
             while True:

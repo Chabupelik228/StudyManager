@@ -1,7 +1,5 @@
 import asyncio
 import calendar
-from contextlib import suppress
-from datetime import datetime
 import html
 import io
 import json
@@ -10,8 +8,12 @@ import os
 import re
 import time
 import uuid
+from contextlib import suppress
+from datetime import datetime
 
 import aiohttp
+import asyncpg
+import pytz
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command, CommandStart
@@ -20,29 +22,26 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    InputMediaDocument,
     InputMediaPhoto,
     Message,
 )
-import asyncpg
 from dotenv import load_dotenv
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
-import pytz
 
 load_dotenv()
 
 # --- CONFIG & SECRETS ---
 TOKEN = os.getenv("BOT_TOKEN")
-GROUP_ID = int(os.getenv("GROUP_ID", 0))
+GROUP_ID = int(os.getenv("GROUP_ID", "0"))
 VK_TOKEN = os.getenv("VK_TOKEN")
-VK_GROUP_ID = int(os.getenv("VK_GROUP_ID", 0))
-VK_CHAT_PEER_ID = int(os.getenv("VK_CHAT_PEER_ID", 0))
+VK_GROUP_ID = int(os.getenv("VK_GROUP_ID", "0"))
+VK_CHAT_PEER_ID = int(os.getenv("VK_CHAT_PEER_ID", "0"))
 VK_API_VERSION = "5.199"
 
-TEST_GROUP_ID = int(os.getenv("TEST_GROUP_ID", 0))
-TEST_VK_CHAT_PEER_ID = int(os.getenv("TEST_VK_CHAT_PEER_ID", 0))
+TEST_GROUP_ID = int(os.getenv("TEST_GROUP_ID", "0"))
+TEST_VK_CHAT_PEER_ID = int(os.getenv("TEST_VK_CHAT_PEER_ID", "0"))
 
 CHAT_MAP = {
     VK_CHAT_PEER_ID: GROUP_ID,
@@ -95,7 +94,12 @@ EXCLUDED_IDS = {14, 17, 22}
 MSK = pytz.timezone("Europe/Moscow")
 
 STAFF = [
-    {"id": 100, "name": "Виктория Александровна", "tg_id": 1331701095, "vk_id": 233661166}
+    {
+        "id": 100,
+        "name": "Виктория Александровна",
+        "tg_id": 1331701095,
+        "vk_id": 233661166,
+    }
 ]
 
 STUDENTS = [
@@ -125,60 +129,384 @@ STUDENTS = [
 
 ALL_PEOPLE = STUDENTS + STAFF
 TG_NAME_MAP = {s["tg_id"]: s["name"] for s in ALL_PEOPLE if s.get("tg_id")}
-VK_NAME_MAP = {s["vk_id"]: s["name"] for s in ALL_PEOPLE if s.get("vk_id") and s["vk_id"] != 0}
+VK_NAME_MAP = {
+    s["vk_id"]: s["name"] for s in ALL_PEOPLE if s.get("vk_id") and s["vk_id"] != 0
+}
 
 try:
     from app.data.schedule_data import BASE_SCHEDULE
 except Exception:
     BASE_SCHEDULE = [
         # 1 семестр
-        {"day": 0, "time": "09:40", "name": "Операционные системы и среды", "teacher": "Орлянская В.С.", "start": "2025-09-01", "end": "2025-10-25"},
-        {"day": 0, "time": "11:20", "name": "Физическая культура", "teacher": "Иванова М.А.", "start": "2025-09-01", "end": "2025-10-25"},
-        {"day": 0, "time": "13:10", "name": "Стандартизация, сертификация и тех. документоведение", "teacher": "Иванов Е.О.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 0, "time": "16:00", "name": "Основы проектирования баз данных", "teacher": "Петрушка С.А.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 1, "time": "08:00", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2025-09-01", "end": "2025-10-25"},
-        {"day": 1, "time": "08:00", "name": "Основы философии", "teacher": "Еременко Я.А.", "start": "2025-10-27", "end": "2025-12-20"},
-        {"day": 1, "time": "09:40", "name": "Элементы высшей математики", "teacher": "Сиканова В.А.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 1, "time": "11:20", "name": "Основы алгоритмизации и программирования", "teacher": "Сиканова В.А.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 1, "time": "13:10", "name": "Операционные системы и среды", "teacher": "Орлянская В.С.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 2, "time": "08:00", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2025-09-01", "end": "2025-10-25"},
-        {"day": 2, "time": "08:00", "name": "Дискретная математика с элементами мат. логики", "teacher": "Корманенко Н.В.", "start": "2025-10-27", "end": "2025-12-20"},
-        {"day": 2, "time": "09:40", "name": "Основы философии", "teacher": "Еременко Я.А.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 2, "time": "11:20", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 3, "time": "11:20", "name": "Информационные технологии", "teacher": "Кириченко Е.Г.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 3, "time": "13:10", "name": "Русский язык и культура речи", "teacher": "Безуленко Д.А.", "start": "2025-09-01", "end": "2025-10-25"},
-        {"day": 3, "time": "13:10", "name": "Физическая культура", "teacher": "Иванова М.А.", "start": "2025-10-27", "end": "2025-12-20"},
-        {"day": 3, "time": "14:50", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2025-09-01", "end": "2025-10-25"},
-        {"day": 3, "time": "14:50", "name": "Операционные системы и среды", "teacher": "Орлянская В.С.", "start": "2025-10-27", "end": "2025-12-20"},
-        {"day": 4, "time": "08:00", "name": "Стандартизация, сертификация и тех. документоведение", "teacher": "Иванов Е.О.", "start": "2025-01-09", "end": "2025-10-25"},
-        {"day": 4, "time": "08:00", "name": "Основы проектирования баз данных", "teacher": "Петрушка С.А.", "start": "2025-10-27", "end": "2025-12-20"},
-        {"day": 4, "time": "09:40", "name": "Архитектура аппаратных средств", "teacher": "Петрушка С.А.", "start": "2025-09-01", "end": "2025-12-20"},
-        {"day": 4, "time": "11:20", "name": "Иностранный язык в проф. деятельности", "teacher": "Лабинцева Н.Г.", "start": "2025-01-09", "end": "2025-12-20"},
-        {"day": 4, "time": "13:10", "name": "Дискретная математика с элементами мат. логики", "teacher": "Корманенко Н.В.", "start": "2025-01-09", "end": "2025-12-20"},
+        {
+            "day": 0,
+            "time": "09:40",
+            "name": "Операционные системы и среды",
+            "teacher": "Орлянская В.С.",
+            "start": "2025-09-01",
+            "end": "2025-10-25",
+        },
+        {
+            "day": 0,
+            "time": "11:20",
+            "name": "Физическая культура",
+            "teacher": "Иванова М.А.",
+            "start": "2025-09-01",
+            "end": "2025-10-25",
+        },
+        {
+            "day": 0,
+            "time": "13:10",
+            "name": "Стандартизация, сертификация и тех. документоведение",
+            "teacher": "Иванов Е.О.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 0,
+            "time": "16:00",
+            "name": "Основы проектирования баз данных",
+            "teacher": "Петрушка С.А.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 1,
+            "time": "08:00",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2025-09-01",
+            "end": "2025-10-25",
+        },
+        {
+            "day": 1,
+            "time": "08:00",
+            "name": "Основы философии",
+            "teacher": "Еременко Я.А.",
+            "start": "2025-10-27",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 1,
+            "time": "09:40",
+            "name": "Элементы высшей математики",
+            "teacher": "Сиканова В.А.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 1,
+            "time": "11:20",
+            "name": "Основы алгоритмизации и программирования",
+            "teacher": "Сиканова В.А.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 1,
+            "time": "13:10",
+            "name": "Операционные системы и среды",
+            "teacher": "Орлянская В.С.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 2,
+            "time": "08:00",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2025-09-01",
+            "end": "2025-10-25",
+        },
+        {
+            "day": 2,
+            "time": "08:00",
+            "name": "Дискретная математика с элементами мат. логики",
+            "teacher": "Корманенко Н.В.",
+            "start": "2025-10-27",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 2,
+            "time": "09:40",
+            "name": "Основы философии",
+            "teacher": "Еременко Я.А.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 2,
+            "time": "11:20",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 3,
+            "time": "11:20",
+            "name": "Информационные технологии",
+            "teacher": "Кириченко Е.Г.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 3,
+            "time": "13:10",
+            "name": "Русский язык и культура речи",
+            "teacher": "Безуленко Д.А.",
+            "start": "2025-09-01",
+            "end": "2025-10-25",
+        },
+        {
+            "day": 3,
+            "time": "13:10",
+            "name": "Физическая культура",
+            "teacher": "Иванова М.А.",
+            "start": "2025-10-27",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 3,
+            "time": "14:50",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2025-09-01",
+            "end": "2025-10-25",
+        },
+        {
+            "day": 3,
+            "time": "14:50",
+            "name": "Операционные системы и среды",
+            "teacher": "Орлянская В.С.",
+            "start": "2025-10-27",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 4,
+            "time": "08:00",
+            "name": "Стандартизация, сертификация и тех. документоведение",
+            "teacher": "Иванов Е.О.",
+            "start": "2025-01-09",
+            "end": "2025-10-25",
+        },
+        {
+            "day": 4,
+            "time": "08:00",
+            "name": "Основы проектирования баз данных",
+            "teacher": "Петрушка С.А.",
+            "start": "2025-10-27",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 4,
+            "time": "09:40",
+            "name": "Архитектура аппаратных средств",
+            "teacher": "Петрушка С.А.",
+            "start": "2025-09-01",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 4,
+            "time": "11:20",
+            "name": "Иностранный язык в проф. деятельности",
+            "teacher": "Лабинцева Н.Г.",
+            "start": "2025-01-09",
+            "end": "2025-12-20",
+        },
+        {
+            "day": 4,
+            "time": "13:10",
+            "name": "Дискретная математика с элементами мат. логики",
+            "teacher": "Корманенко Н.В.",
+            "start": "2025-01-09",
+            "end": "2025-12-20",
+        },
         # 2 семестр
-        {"day": 0, "time": "09:10", "name": "Физическая культура", "teacher": "Иванова М.А.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 0, "time": "10:50", "name": "Элементы высшей математики", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 0, "time": "12:40", "name": "Основы алгоритмизации и программирования", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 0, "time": "14:20", "name": "Теория вероятностей и математическая статистика", "teacher": "Нечитайло М.С.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 1, "time": "08:00", "name": "Элементы высшей математики", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 1, "time": "09:40", "name": "Основы алгоритмизации и программирования", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 1, "time": "11:20", "name": "Основы алгоритмизации и программирования", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-02-14"},
-        {"day": 1, "time": "11:20", "name": "История", "teacher": "Баркова А.С.", "start": "2026-02-16", "end": "2026-04-15"},
-        {"day": 1, "time": "13:10", "name": "Иностранный язык в проф. деятельности", "teacher": "Лабинцева Н.Г.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 2, "time": "13:10", "name": "История", "teacher": "Баркова А.С.", "start": "2026-01-12", "end": "2026-02-28"},
-        {"day": 2, "time": "13:10", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2026-03-02", "end": "2026-04-15"},
-        {"day": 2, "time": "14:50", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 2, "time": "16:40", "name": "Экологические основы природопользования", "teacher": "Гадаева Д.М.", "start": "2026-02-16", "end": "2026-04-04"},
-        {"day": 3, "time": "11:20", "name": "Основы алгоритмизации и программирования", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-01-24"},
-        {"day": 3, "time": "11:20", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2026-01-26", "end": "2026-02-07"},
-        {"day": 3, "time": "13:10", "name": "История", "teacher": "Баркова А.С.", "start": "2026-01-12", "end": "2026-02-14"},
-        {"day": 3, "time": "13:10", "name": "Информационные системы", "teacher": "Кириченко Е.Е.", "start": "2026-03-09", "end": "2026-03-28"},
-        {"day": 3, "time": "14:50", "name": "Информационные системы", "teacher": "Кириченко Е.Е.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 3, "time": "16:40", "name": "Информационные системы", "teacher": "Кириченко Е.Е.", "start": "2026-02-16", "end": "2026-03-07"},
-        {"day": 4, "time": "09:40", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 4, "time": "11:20", "name": "МДК 11.01 Технология разработки и защиты баз данных", "teacher": "Сиканова В.А.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 4, "time": "13:10", "name": "Информационные системы", "teacher": "Кириченко Е.Е.", "start": "2026-01-12", "end": "2026-04-15"},
-        {"day": 4, "time": "14:50", "name": "Информационные системы", "teacher": "Кириченко Е.Е.", "start": "2026-01-12", "end": "2026-03-21"},
+        {
+            "day": 0,
+            "time": "09:10",
+            "name": "Физическая культура",
+            "teacher": "Иванова М.А.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 0,
+            "time": "10:50",
+            "name": "Элементы высшей математики",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 0,
+            "time": "12:40",
+            "name": "Основы алгоритмизации и программирования",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 0,
+            "time": "14:20",
+            "name": "Теория вероятностей и математическая статистика",
+            "teacher": "Нечитайло М.С.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 1,
+            "time": "08:00",
+            "name": "Элементы высшей математики",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 1,
+            "time": "09:40",
+            "name": "Основы алгоритмизации и программирования",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 1,
+            "time": "11:20",
+            "name": "Основы алгоритмизации и программирования",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-02-14",
+        },
+        {
+            "day": 1,
+            "time": "11:20",
+            "name": "История",
+            "teacher": "Баркова А.С.",
+            "start": "2026-02-16",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 1,
+            "time": "13:10",
+            "name": "Иностранный язык в проф. деятельности",
+            "teacher": "Лабинцева Н.Г.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 2,
+            "time": "13:10",
+            "name": "История",
+            "teacher": "Баркова А.С.",
+            "start": "2026-01-12",
+            "end": "2026-02-28",
+        },
+        {
+            "day": 2,
+            "time": "13:10",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-03-02",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 2,
+            "time": "14:50",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 2,
+            "time": "16:40",
+            "name": "Экологические основы природопользования",
+            "teacher": "Гадаева Д.М.",
+            "start": "2026-02-16",
+            "end": "2026-04-04",
+        },
+        {
+            "day": 3,
+            "time": "11:20",
+            "name": "Основы алгоритмизации и программирования",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-01-24",
+        },
+        {
+            "day": 3,
+            "time": "11:20",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-26",
+            "end": "2026-02-07",
+        },
+        {
+            "day": 3,
+            "time": "13:10",
+            "name": "История",
+            "teacher": "Баркова А.С.",
+            "start": "2026-01-12",
+            "end": "2026-02-14",
+        },
+        {
+            "day": 3,
+            "time": "13:10",
+            "name": "Информационные системы",
+            "teacher": "Кириченко Е.Е.",
+            "start": "2026-03-09",
+            "end": "2026-03-28",
+        },
+        {
+            "day": 3,
+            "time": "14:50",
+            "name": "Информационные системы",
+            "teacher": "Кириченко Е.Е.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 3,
+            "time": "16:40",
+            "name": "Информационные системы",
+            "teacher": "Кириченко Е.Е.",
+            "start": "2026-02-16",
+            "end": "2026-03-07",
+        },
+        {
+            "day": 4,
+            "time": "09:40",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 4,
+            "time": "11:20",
+            "name": "МДК 11.01 Технология разработки и защиты баз данных",
+            "teacher": "Сиканова В.А.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 4,
+            "time": "13:10",
+            "name": "Информационные системы",
+            "teacher": "Кириченко Е.Е.",
+            "start": "2026-01-12",
+            "end": "2026-04-15",
+        },
+        {
+            "day": 4,
+            "time": "14:50",
+            "name": "Информационные системы",
+            "teacher": "Кириченко Е.Е.",
+            "start": "2026-01-12",
+            "end": "2026-03-21",
+        },
     ]
 
 UNDO_STORAGE = {}
@@ -262,7 +590,9 @@ async def generate_excel_report(year: str, month: str):
 
     grey_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
     red_fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
-    yellow_fill = PatternFill(start_color="FFFFCC", end_color="FFFFCC", fill_type="solid")
+    yellow_fill = PatternFill(
+        start_color="FFFFCC", end_color="FFFFCC", fill_type="solid"
+    )
 
     ru_months = [
         "",
@@ -290,7 +620,10 @@ async def generate_excel_report(year: str, month: str):
         value=f"ВЕДОМОСТЬ учета учебных часов за {ru_months[m]} {year} года",
     ).font = Font(size=14, bold=True)
     ws.merge_cells(
-        start_row=2, start_column=START_COL, end_row=2, end_column=START_COL + last_day + 4
+        start_row=2,
+        start_column=START_COL,
+        end_row=2,
+        end_column=START_COL + last_day + 4,
     )
 
     ws.cell(row=START_ROW, column=START_COL, value="№ п/п").font = bold_font
@@ -396,7 +729,9 @@ async def generate_excel_report(year: str, month: str):
         c.font = bold_font
         c.border = border
 
-    ws.cell(row=row_idx, column=tot_col, value=grand_total_nb + grand_total_uv).font = bold_font
+    ws.cell(
+        row=row_idx, column=tot_col, value=grand_total_nb + grand_total_uv
+    ).font = bold_font
     ws.cell(row=row_idx, column=tot_col).border = border
     ws.cell(row=row_idx, column=tot_col + 1, value=grand_total_uv).font = bold_font
     ws.cell(row=row_idx, column=tot_col + 1).border = border
@@ -427,12 +762,16 @@ async def save_msg_link(tg_id: int, vk_id: int):
 
 async def get_vk_by_tg(tg_id: int) -> int | None:
     pool = await get_db_pool()
-    return await pool.fetchval("SELECT vk_msg_id FROM message_bridge WHERE tg_msg_id = $1", tg_id)
+    return await pool.fetchval(
+        "SELECT vk_msg_id FROM message_bridge WHERE tg_msg_id = $1", tg_id
+    )
 
 
 async def get_tg_by_vk(vk_id: int) -> int | None:
     pool = await get_db_pool()
-    return await pool.fetchval("SELECT tg_msg_id FROM message_bridge WHERE vk_msg_id = $1", vk_id)
+    return await pool.fetchval(
+        "SELECT tg_msg_id FROM message_bridge WHERE vk_msg_id = $1", vk_id
+    )
 
 
 class AsyncVKBridge:
@@ -451,7 +790,9 @@ class AsyncVKBridge:
         params["access_token"] = VK_TOKEN
         params["v"] = VK_API_VERSION
         session = await self.get_session()
-        async with session.post(f"https://api.vk.com/method/{method}", data=params) as resp:
+        async with session.post(
+            f"https://api.vk.com/method/{method}", data=params
+        ) as resp:
             return await resp.json()
 
     async def get_user_name(self, user_id):
@@ -462,7 +803,7 @@ class AsyncVKBridge:
         if user_id < 0:
             return "Группа"
         res = await self.api_call("users.get", {"user_ids": user_id})
-        if "response" in res and res["response"]:
+        if res.get("response"):
             user = res["response"][0]
             name = f"{user['first_name']} {user['last_name']}"
             self.user_cache[user_id] = name
@@ -514,12 +855,16 @@ class AsyncVKBridge:
 
     async def upload_photo(self, photo_bytes, peer_id):
         try:
-            server_res = await self.api_call("photos.getMessagesUploadServer", {"peer_id": peer_id})
+            server_res = await self.api_call(
+                "photos.getMessagesUploadServer", {"peer_id": peer_id}
+            )
             upload_url = server_res["response"]["upload_url"]
 
             session = await self.get_session()
             form = aiohttp.FormData()
-            form.add_field("photo", photo_bytes, filename="photo.jpg", content_type="image/jpeg")
+            form.add_field(
+                "photo", photo_bytes, filename="photo.jpg", content_type="image/jpeg"
+            )
             async with session.post(upload_url, data=form) as resp:
                 upload_data = await resp.json()
 
@@ -547,7 +892,10 @@ class AsyncVKBridge:
             session = await self.get_session()
             form = aiohttp.FormData()
             form.add_field(
-                "file", file_bytes, filename=filename, content_type="application/octet-stream"
+                "file",
+                file_bytes,
+                filename=filename,
+                content_type="application/octet-stream",
             )
 
             async with session.post(upload_url, data=form) as resp:
@@ -572,13 +920,16 @@ class AsyncVKBridge:
     async def upload_voice(self, voice_bytes, peer_id):
         try:
             server_res = await self.api_call(
-                "docs.getMessagesUploadServer", {"type": "audio_message", "peer_id": peer_id}
+                "docs.getMessagesUploadServer",
+                {"type": "audio_message", "peer_id": peer_id},
             )
             upload_url = server_res["response"]["upload_url"]
 
             session = await self.get_session()
             form = aiohttp.FormData()
-            form.add_field("file", voice_bytes, filename="voice.ogg", content_type="audio/ogg")
+            form.add_field(
+                "file", voice_bytes, filename="voice.ogg", content_type="audio/ogg"
+            )
             async with session.post(upload_url, data=form) as resp:
                 upload_data = await resp.json()
 
@@ -626,8 +977,10 @@ class AsyncVKBridge:
 
             res.append(f"{prefix}<b>{html.escape(author)}</b>: {content}")
 
-            if "fwd_messages" in fwd and fwd["fwd_messages"]:
-                inner_fwd = await self.format_fwd_messages(fwd["fwd_messages"], level + 1)
+            if fwd.get("fwd_messages"):
+                inner_fwd = await self.format_fwd_messages(
+                    fwd["fwd_messages"], level + 1
+                )
                 res.extend(inner_fwd)
         return res
 
@@ -677,7 +1030,9 @@ class AsyncVKBridge:
                             if not tg_target_chat:
                                 continue
 
-                            vk_msg_hash = msg.get("conversation_message_id", msg.get("id"))
+                            vk_msg_hash = msg.get(
+                                "conversation_message_id", msg.get("id")
+                            )
                             if vk_msg_hash in PROCESSED_VK_MSGS:
                                 continue
                             PROCESSED_VK_MSGS.add(vk_msg_hash)
@@ -685,13 +1040,17 @@ class AsyncVKBridge:
                             if len(PROCESSED_VK_MSGS) > 1000:
                                 PROCESSED_VK_MSGS.clear()
 
-                            async def process_delayed_vk_msg(original_msg, target_chat, delay):
+                            async def process_delayed_vk_msg(
+                                original_msg, target_chat, delay
+                            ):
                                 await asyncio.sleep(delay)
                                 current_msg = original_msg
                                 try:
                                     fresh_res = None
                                     vk_id = original_msg.get("id", 0)
-                                    conv_id = original_msg.get("conversation_message_id")
+                                    conv_id = original_msg.get(
+                                        "conversation_message_id"
+                                    )
 
                                     if vk_id != 0:
                                         fresh_res = await self.api_call(
@@ -713,10 +1072,14 @@ class AsyncVKBridge:
                                     ):
                                         current_msg = fresh_res["response"]["items"][0]
                                 except Exception as e:
-                                    logging.error(f"Ошибка при обновлении сообщения ВК: {e}")
+                                    logging.error(
+                                        f"Ошибка при обновлении сообщения ВК: {e}"
+                                    )
 
                                 text = current_msg.get("text", "")
-                                name = await self.get_user_name(current_msg.get("from_id", 0))
+                                name = await self.get_user_name(
+                                    current_msg.get("from_id", 0)
+                                )
 
                                 user_url = (
                                     f"https://vk.com/id{current_msg.get('from_id')}"
@@ -741,7 +1104,7 @@ class AsyncVKBridge:
                                         f"<blockquote expandable><b>👤 В ответ {html.escape(reply_author)}:</b>\n<i>{html.escape(orig_text)}</i></blockquote>"
                                     )
 
-                                if "fwd_messages" in current_msg and current_msg["fwd_messages"]:
+                                if current_msg.get("fwd_messages"):
                                     fwd_lines = await self.format_fwd_messages(
                                         current_msg["fwd_messages"]
                                     )
@@ -755,7 +1118,9 @@ class AsyncVKBridge:
 
                                 tg_text = "\n\n".join(tg_text_parts)
 
-                                all_attachments = await self.collect_all_attachments(current_msg)
+                                all_attachments = await self.collect_all_attachments(
+                                    current_msg
+                                )
                                 photos = []
                                 docs = []
                                 voices = []
@@ -764,11 +1129,13 @@ class AsyncVKBridge:
                                     try:
                                         if att["type"] == "photo":
                                             sizes = att["photo"]["sizes"]
-                                            photo_url = sorted(sizes, key=lambda x: x["width"])[
-                                                -1
-                                            ]["url"]
-                                            file_bytes = await self.download_file_to_bytes(
-                                                photo_url
+                                            photo_url = sorted(
+                                                sizes, key=lambda x: x["width"]
+                                            )[-1]["url"]
+                                            file_bytes = (
+                                                await self.download_file_to_bytes(
+                                                    photo_url
+                                                )
                                             )
                                             if file_bytes:
                                                 photos.append(
@@ -783,7 +1150,11 @@ class AsyncVKBridge:
                                             doc_title = att["doc"].get(
                                                 "title", f"file_{uuid.uuid4().hex[:6]}"
                                             )
-                                            file_bytes = await self.download_file_to_bytes(doc_url)
+                                            file_bytes = (
+                                                await self.download_file_to_bytes(
+                                                    doc_url
+                                                )
+                                            )
                                             if file_bytes:
                                                 docs.append(
                                                     BufferedInputFile(
@@ -793,8 +1164,10 @@ class AsyncVKBridge:
 
                                         elif att["type"] == "audio_message":
                                             voice_url = att["audio_message"]["link_ogg"]
-                                            file_bytes = await self.download_file_to_bytes(
-                                                voice_url
+                                            file_bytes = (
+                                                await self.download_file_to_bytes(
+                                                    voice_url
+                                                )
                                             )
                                             if file_bytes:
                                                 voices.append(
@@ -806,9 +1179,7 @@ class AsyncVKBridge:
 
                                         elif att["type"] == "video":
                                             v = att["video"]
-                                            video_url = (
-                                                f"https://vk.com/video{v['owner_id']}_{v['id']}"
-                                            )
+                                            video_url = f"https://vk.com/video{v['owner_id']}_{v['id']}"
                                             if "access_key" in v:
                                                 video_url += f"_{v['access_key']}"
                                             tg_text += f"\n\n🎥 <a href='{video_url}'><b>Видеозапись ВКонтакте</b></a>"
@@ -826,7 +1197,9 @@ class AsyncVKBridge:
                                                 m = await bot.send_photo(
                                                     target_chat,
                                                     photo=chunk[0],
-                                                    caption=tg_text if not caption_used else None,
+                                                    caption=tg_text
+                                                    if not caption_used
+                                                    else None,
                                                 )
                                                 sent_msgs.append(m)
                                             else:
@@ -850,7 +1223,9 @@ class AsyncVKBridge:
                                             m = await bot.send_document(
                                                 target_chat,
                                                 document=d,
-                                                caption=tg_text if not caption_used else None,
+                                                caption=tg_text
+                                                if not caption_used
+                                                else None,
                                             )
                                             sent_msgs.append(m)
                                             caption_used = True
@@ -860,7 +1235,9 @@ class AsyncVKBridge:
                                             m = await bot.send_voice(
                                                 target_chat,
                                                 voice=v,
-                                                caption=tg_text if not caption_used else None,
+                                                caption=tg_text
+                                                if not caption_used
+                                                else None,
                                             )
                                             sent_msgs.append(m)
                                             caption_used = True
@@ -872,10 +1249,14 @@ class AsyncVKBridge:
                                     if sent_msgs:
                                         vk_save_id = current_msg.get("id")
                                         if vk_save_id == 0 or vk_save_id is None:
-                                            vk_save_id = current_msg.get("conversation_message_id")
+                                            vk_save_id = current_msg.get(
+                                                "conversation_message_id"
+                                            )
 
                                         if vk_save_id:
-                                            await save_msg_link(sent_msgs[0].message_id, vk_save_id)
+                                            await save_msg_link(
+                                                sent_msgs[0].message_id, vk_save_id
+                                            )
 
                                 except Exception as e:
                                     logging.error(f"Error sending to TG: {e}")
@@ -934,8 +1315,10 @@ class AsyncVKBridge:
                                         f"<blockquote expandable><b>👤 В ответ {html.escape(reply_author)}:</b>\n<i>{html.escape(orig_text)}</i></blockquote>"
                                     )
 
-                                if "fwd_messages" in msg and msg["fwd_messages"]:
-                                    fwd_lines = await self.format_fwd_messages(msg["fwd_messages"])
+                                if msg.get("fwd_messages"):
+                                    fwd_lines = await self.format_fwd_messages(
+                                        msg["fwd_messages"]
+                                    )
                                     tg_text_parts.append(
                                         "<b>✉️ Пересланные сообщения:</b>\n"
                                         + "\n".join(fwd_lines)
@@ -946,13 +1329,13 @@ class AsyncVKBridge:
 
                                 tg_text = "\n\n".join(tg_text_parts)
 
-                                all_attachments = await self.collect_all_attachments(msg)
+                                all_attachments = await self.collect_all_attachments(
+                                    msg
+                                )
                                 for att in all_attachments:
                                     if att["type"] == "video":
                                         v = att["video"]
-                                        video_url = (
-                                            f"https://vk.com/video{v['owner_id']}_{v['id']}"
-                                        )
+                                        video_url = f"https://vk.com/video{v['owner_id']}_{v['id']}"
                                         if "access_key" in v:
                                             video_url += f"_{v['access_key']}"
                                         tg_text += f"\n\n🎥 <a href='{video_url}'><b>Видеозапись ВКонтакте</b></a>"
@@ -1054,7 +1437,9 @@ async def handle_clear_media(message: Message):
 
             final_text = "\n\n".join(parts)
 
-            await bot.send_message(chat_id=chat_id, text=final_text, disable_notification=True)
+            await bot.send_message(
+                chat_id=chat_id, text=final_text, disable_notification=True
+            )
             await bot.delete_message(chat_id, tg_mid)
             success_count += 1
 
@@ -1102,13 +1487,17 @@ async def handle_start(message: Message):
 
     if args and args.startswith("report_"):
         if message.from_user.id not in ADMIN_USERS:
-            return await message.answer("⛔️ Только администраторы могут скачивать отчеты.")
+            return await message.answer(
+                "⛔️ Только администраторы могут скачивать отчеты."
+            )
         try:
             _, year, month = args.split("_")
             if not (2020 < int(year) < 2030 and 0 < int(month) < 13):
                 raise ValueError()
             await message.answer("⏳ Формирую отчет... Пожалуйста, подождите.")
-            await bot.send_chat_action(chat_id=message.chat.id, action="upload_document")
+            await bot.send_chat_action(
+                chat_id=message.chat.id, action="upload_document"
+            )
             excel_file = await generate_excel_report(year, month)
             filename = f"Ведомость_{year}_{month}.xlsx"
             document = BufferedInputFile(excel_file.getvalue(), filename=filename)
@@ -1185,9 +1574,7 @@ async def handle_list(message: Message):
         mark = "⚪"
         d_val = entry["date"]
         if d_val:
-            dt_str = (
-                f"<code>{datetime.strptime(d_val, '%Y-%m-%d').strftime('%d.%m.%Y')}</code>"
-            )
+            dt_str = f"<code>{datetime.strptime(d_val, '%Y-%m-%d').strftime('%d.%m.%Y')}</code>"
             if d_val == red_date:
                 mark = "🔴"
             elif d_val in blue_dates:
@@ -1224,7 +1611,9 @@ async def handle_vk_names(message: Message):
             for s in with_vk_id:
                 v_id = s["vk_id"]
                 if v_id in vk_response_map:
-                    found_list.append(f"✅ {s['name']} → <b>{vk_response_map[v_id]}</b>")
+                    found_list.append(
+                        f"✅ {s['name']} → <b>{vk_response_map[v_id]}</b>"
+                    )
                 else:
                     error_id_list.append(f"❌ {s['name']} (ID: <code>{v_id}</code>)")
 
@@ -1283,9 +1672,7 @@ async def handle_dury(message: Message):
         search = line.strip().lower()
         if not search:
             continue
-        found_student = next(
-            (s for s in STUDENTS if search in s["name"].lower()), None
-        )
+        found_student = next((s for s in STUDENTS if search in s["name"].lower()), None)
 
         if found_student:
             s_id = found_student["id"]
@@ -1314,17 +1701,19 @@ async def handle_dury(message: Message):
     UNDO_STORAGE[undo_id] = undo_list
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="↩️ Отменить", callback_data=f"undo_dury:{undo_id}")]
+            [
+                InlineKeyboardButton(
+                    text="↩️ Отменить", callback_data=f"undo_dury:{undo_id}"
+                )
+            ]
         ]
     )
 
-    resp = (
-        f"🔔 <b>Назначены дежурные!</b>\n📅 Дата: <code>{display_date}</code>\n━━━━━━━━━━━━━━━━━━\n"
-    )
+    resp = f"🔔 <b>Назначены дежурные!</b>\n📅 Дата: <code>{display_date}</code>\n━━━━━━━━━━━━━━━━━━\n"
     for name in updated_ids:
         resp += f"✅ <b>{html.escape(name)}</b>\n"
     if not_found:
-        resp += f"\n⚠️ <b>Не найдены:</b>\n" + "\n".join(
+        resp += "\n⚠️ <b>Не найдены:</b>\n" + "\n".join(
             [html.escape(n) for n in not_found]
         )
     resp += f"\n\n👤 <b>Назначил:</b> {message.from_user.mention_html()}"
@@ -1374,9 +1763,7 @@ async def process_web_undo(callback: CallbackQuery):
 
     undo_id = callback.data.split(":")[1]
     pool = await get_db_pool()
-    row = await pool.fetchrow(
-        "SELECT data FROM web_undos WHERE undo_id = $1", undo_id
-    )
+    row = await pool.fetchrow("SELECT data FROM web_undos WHERE undo_id = $1", undo_id)
 
     restored = False
     if row:
@@ -1554,9 +1941,7 @@ async def process_tg_messages_to_vk(messages: list[Message], target_vk_peer: int
     vk_text = "\n\n".join(vk_text_parts)
     attachment_str = ",".join(attachments)
 
-    vk_msg_id = await vk_bridge.send_message(
-        vk_text, target_vk_peer, attachment_str
-    )
+    vk_msg_id = await vk_bridge.send_message(vk_text, target_vk_peer, attachment_str)
 
     if vk_msg_id:
         for m in messages:
@@ -1628,7 +2013,6 @@ async def main():
     try:
         await asyncio.gather(task_tg, task_vk)
     finally:
-        global db_pool
         if db_pool:
             await db_pool.close()
 

@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 from datetime import datetime, timedelta
+
 import pytz
+
 from app.data.schedule_data import BASE_SCHEDULE
 from app.models.override import Override
 
@@ -28,7 +31,9 @@ def get_base_lessons_for_date(date_str: str) -> list[dict]:
 
 def compute_active_times(base_times: set[str], overrides: list[Override]) -> set[str]:
     canceled = {o.time for o in overrides if o.is_canceled}
-    added = {o.time for o in overrides if not o.is_canceled and o.time not in base_times}
+    added = {
+        o.time for o in overrides if not o.is_canceled and o.time not in base_times
+    }
     return (base_times - canceled) | added
 
 
@@ -48,23 +53,31 @@ def build_schedule(
         t = lesson["time"]
         processed_times.add(t)
         ovr = override_map.get(t)
-        temp.append({
-            "time": t,
-            "name": (ovr.new_name if ovr and ovr.new_name else lesson["name"]),
-            "teacher": (ovr.new_teacher if ovr and ovr.new_teacher else lesson.get("teacher", "Не назначен")),
-            "canceled": bool(ovr and ovr.is_canceled),
-            "absent_count": absent_counts.get(t, 0),
-        })
+        temp.append(
+            {
+                "time": t,
+                "name": (ovr.new_name if ovr and ovr.new_name else lesson["name"]),
+                "teacher": (
+                    ovr.new_teacher
+                    if ovr and ovr.new_teacher
+                    else lesson.get("teacher", "Не назначен")
+                ),
+                "canceled": bool(ovr and ovr.is_canceled),
+                "absent_count": absent_counts.get(t, 0),
+            }
+        )
 
     for t, ovr in override_map.items():
         if t not in processed_times:
-            temp.append({
-                "time": t,
-                "name": ovr.new_name or "Без названия",
-                "teacher": ovr.new_teacher or "Не назначен",
-                "canceled": bool(ovr.is_canceled),
-                "absent_count": absent_counts.get(t, 0),
-            })
+            temp.append(
+                {
+                    "time": t,
+                    "name": ovr.new_name or "Без названия",
+                    "teacher": ovr.new_teacher or "Не назначен",
+                    "canceled": bool(ovr.is_canceled),
+                    "absent_count": absent_counts.get(t, 0),
+                }
+            )
 
     temp.sort(key=lambda x: x["time"].zfill(5))
 

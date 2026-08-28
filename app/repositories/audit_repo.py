@@ -1,12 +1,18 @@
 from __future__ import annotations
+
 import time
+
 from sqlalchemy import delete, distinct, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from app.models.audit import ActionLog, AdminOnline
 from app.repositories.base import BaseRepository
 
+
 class AuditRepository(BaseRepository):
-    async def log_action(self, admin_name: str, action_type: str, details: str) -> ActionLog:
+    async def log_action(
+        self, admin_name: str, action_type: str, details: str
+    ) -> ActionLog:
         now = time.time()
         entry = ActionLog(
             admin_name=admin_name,
@@ -68,4 +74,3 @@ class AuditRepository(BaseRepository):
     async def get_all_admins_online(self) -> dict[int, AdminOnline]:
         result = await self.session.execute(select(AdminOnline))
         return {row.user_id: row for row in result.scalars().all()}
-

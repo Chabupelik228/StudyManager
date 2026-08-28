@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import calendar
 from datetime import datetime, timedelta
+
 from app.data.schedule_data import BASE_SCHEDULE
 from app.models.attendance import Attendance
 from app.models.override import Override
@@ -18,7 +20,9 @@ def _build_override_map(overrides: list[Override]) -> dict[tuple[str, str], dict
     return result
 
 
-def compute_total_hours(overrides: list[Override], from_date_str: str, to_date_str: str) -> int:
+def compute_total_hours(
+    overrides: list[Override], from_date_str: str, to_date_str: str
+) -> int:
     start_dt = datetime.strptime(from_date_str, "%Y-%m-%d")
     end_dt = datetime.strptime(to_date_str, "%Y-%m-%d")
 
@@ -31,7 +35,8 @@ def compute_total_hours(overrides: list[Override], from_date_str: str, to_date_s
         d_str = curr.strftime("%Y-%m-%d")
         wday = curr.weekday()
         base_times = {
-            l["time"] for l in BASE_SCHEDULE
+            l["time"]
+            for l in BASE_SCHEDULE
             if l["day"] == wday and l["start"] <= d_str <= l["end"]
         }
         count = sum(1 for t in base_times if (d_str, t) not in canceled_set)
@@ -107,20 +112,18 @@ def compute_subject_stats(
         d_str = curr_dt.strftime("%Y-%m-%d")
         wday = curr_dt.weekday()
 
-        day_times: set[str] = {
-            l["time"] for l in BASE_SCHEDULE if l["day"] == wday
-        }
-        day_times.update(
-            t for (dt, t) in override_map.keys() if dt == d_str
-        )
+        day_times: set[str] = {l["time"] for l in BASE_SCHEDULE if l["day"] == wday}
+        day_times.update(t for (dt, t) in override_map.keys() if dt == d_str)
 
         for t_str in day_times:
             name, teacher = get_subject_at(d_str, t_str, wday, override_map)
             if name:
                 if name not in stats:
                     stats[name] = {
-                        "missed_m": 0, "total_m": 0,
-                        "missed_all": 0, "total_all": 0,
+                        "missed_m": 0,
+                        "total_m": 0,
+                        "missed_all": 0,
+                        "total_all": 0,
                         "teacher": teacher,
                     }
                 stats[name]["total_all"] += 2
@@ -137,8 +140,10 @@ def compute_subject_stats(
             name = "Доп. занятие"
         if name not in stats:
             stats[name] = {
-                "missed_m": 0, "total_m": 0,
-                "missed_all": 0, "total_all": 0,
+                "missed_m": 0,
+                "total_m": 0,
+                "missed_all": 0,
+                "total_all": 0,
                 "teacher": "—",
             }
         stats[name]["missed_all"] += 2

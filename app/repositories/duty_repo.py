@@ -1,10 +1,14 @@
 from __future__ import annotations
+
 import json
 import time
+
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from app.models.duty import Duty, WebUndo
 from app.repositories.base import BaseRepository
+
 
 class DutyRepository(BaseRepository):
     async def get_all(self) -> dict[int, str | None]:
@@ -28,7 +32,9 @@ class DutyRepository(BaseRepository):
             await self.upsert(student_id, date)
 
     async def save_undo(self, undo_id: str, undo_data: list) -> None:
-        undo = WebUndo(undo_id=undo_id, data=json.dumps(undo_data), created_at=time.time())
+        undo = WebUndo(
+            undo_id=undo_id, data=json.dumps(undo_data), created_at=time.time()
+        )
         self.session.add(undo)
 
     async def pop_undo(self, undo_id: str) -> list | None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from functools import lru_cache
+
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,7 +16,7 @@ class Settings(BaseSettings):
 
     bot_token: str
     group_id: str
-    
+
     vk_token: str | None = None
     vk_group_id: int = 0
     vk_chat_peer_id: int = 0

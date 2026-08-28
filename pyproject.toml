@@ -1,0 +1,22 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+
+
+ignore = [
+    "E501",    # Игнорировать длину строк (Line too long)
+    "E741",    # Разрешить короткие имена переменных (l, I)
+    "B008",    # FastAPI Depends()
+    "LOG015",  # Логгер root
+    "UP046",   # Generic классы
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "tgbot"]
+
+[[tool.mypy.overrides]]
+module = ["tgbot.*", "migrations.*"]
+ignore_errors = true

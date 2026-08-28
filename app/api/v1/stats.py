@@ -1,12 +1,14 @@
 from __future__ import annotations
+
 from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.dependencies import get_current_user, require_admin
+
+from app.api.dependencies import get_current_user
 from app.db.database import get_db
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.override_repo import OverrideRepository
-from app.services.schedule_service import build_schedule
 from app.services.stats_service import (
     aggregate_student_stats,
     compute_lifetime_hours,
@@ -44,15 +46,17 @@ async def get_stats(
         sid = s["id"]
         t = aggregated["total"].get(sid, {"nb": 0, "uv": 0})
         m = aggregated["month"].get(sid, {"nb": 0, "uv": 0})
-        result.append({
-            "id": sid,
-            "tg_id": s["tg_id"],
-            "name": s["name"],
-            "total_nb": t["nb"],
-            "total_uv": t["uv"],
-            "month_nb": m["nb"],
-            "month_uv": m["uv"],
-        })
+        result.append(
+            {
+                "id": sid,
+                "tg_id": s["tg_id"],
+                "name": s["name"],
+                "total_nb": t["nb"],
+                "total_uv": t["uv"],
+                "month_nb": m["nb"],
+                "month_uv": m["uv"],
+            }
+        )
 
     return {
         "total_month_hours": total_month_hours,
@@ -73,8 +77,8 @@ async def get_student_absences(
     absences = await att_repo.get_student_absences(student_id)
     overrides = await ovr_repo.get_all()
 
-    from app.services.stats_service import _build_override_map
     from app.services.schedule_service import get_subject_at
+    from app.services.stats_service import _build_override_map
 
     override_map = _build_override_map(overrides)
 
@@ -86,7 +90,11 @@ async def get_student_absences(
         weekday = datetime.strptime(d_str, "%Y-%m-%d").weekday()
 
         if d_str not in day_totals:
-            from app.services.schedule_service import get_base_times_for_date, compute_active_times
+            from app.services.schedule_service import (
+                compute_active_times,
+                get_base_times_for_date,
+            )
+
             base_times = get_base_times_for_date(d_str)
             day_ovrs = [o for o in overrides if o.date == d_str]
             active = compute_active_times(base_times, day_ovrs)
@@ -96,14 +104,16 @@ async def get_student_absences(
         if not name:
             name = "Доп. занятие"
 
-        result.append({
-            "date": d_str,
-            "time": t_str,
-            "name": name,
-            "status": a.status,
-            "reason": a.reason,
-            "day_total_hours": day_totals[d_str],
-        })
+        result.append(
+            {
+                "date": d_str,
+                "time": t_str,
+                "name": name,
+                "status": a.status,
+                "reason": a.reason,
+                "day_total_hours": day_totals[d_str],
+            }
+        )
 
     result.sort(key=lambda x: (x["date"], x["time"].zfill(5)), reverse=True)
     return {"absences": result}

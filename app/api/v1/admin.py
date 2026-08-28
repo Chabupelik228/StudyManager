@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 import time
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.dependencies import get_current_user, require_admin, require_developer
 from app.core.config import get_settings
 from app.db.database import get_db
@@ -28,11 +31,13 @@ async def ping(
         await repo.upsert_admin_online(user.id, name)
         await db.commit()
 
-        await manager.broadcast({
-            "type": "admin_status",
-            "user_id": user.id,
-            "last_seen": time.time(),
-        })
+        await manager.broadcast(
+            {
+                "type": "admin_status",
+                "user_id": user.id,
+                "last_seen": time.time(),
+            }
+        )
 
     return {"status": "ok"}
 
@@ -58,6 +63,7 @@ async def get_admin_users(
             name = "Виктория Александровна"
         else:
             from app.services.user_service import _tg_id_to_name
+
             name = _tg_id_to_name.get(admin_id, name)
 
         last_seen = data.last_seen if data else 0
@@ -68,12 +74,14 @@ async def get_admin_users(
         else:
             is_online = (now - last_seen) < 65
 
-        admins_list.append({
-            "id": admin_id,
-            "name": name,
-            "is_online": is_online,
-            "last_seen": last_seen,
-        })
+        admins_list.append(
+            {
+                "id": admin_id,
+                "name": name,
+                "is_online": is_online,
+                "last_seen": last_seen,
+            }
+        )
 
     admins_list.sort(key=lambda x: x["is_online"], reverse=True)
     return {"admins": admins_list}
@@ -84,7 +92,9 @@ async def get_admin_users(
 async def get_init(user: UserContext = Depends(get_current_user)):
     settings = get_settings()
     return {
-        "role": "admin" if (user.id in settings.admin_ids_list or user.id == settings.developer_id) else "viewer",
+        "role": "admin"
+        if (user.id in settings.admin_ids_list or user.id == settings.developer_id)
+        else "viewer",
         "user": {"id": user.id, "first_name": user.first_name},
     }
 
@@ -100,7 +110,9 @@ async def get_admin_logs(
     db: AsyncSession = Depends(get_db),
 ):
     repo = AuditRepository(db)
-    logs, users, actions = await repo.get_action_logs(offset, limit, user_filter, action_filter)
+    logs, users, actions = await repo.get_action_logs(
+        offset, limit, user_filter, action_filter
+    )
     return {
         "logs": [
             {

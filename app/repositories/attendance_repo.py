@@ -1,12 +1,16 @@
 from __future__ import annotations
+
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.attendance import Attendance
 from app.repositories.base import BaseRepository
 
+
 class AttendanceRepository(BaseRepository):
-    async def upsert(self, date: str, time: str, student_id: int, status: int, reason: str) -> None:
+    async def upsert(
+        self, date: str, time: str, student_id: int, status: int, reason: str
+    ) -> None:
         stmt = pg_insert(Attendance).values(
             date=date, time=time, student_id=student_id, status=status, reason=reason
         )

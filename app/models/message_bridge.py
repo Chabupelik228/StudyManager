@@ -1,6 +1,8 @@
 from sqlalchemy import BigInteger, Double
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.models.base import Base
+
 
 class MessageBridge(Base):
     __tablename__ = "message_bridge"

@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import time
+
 from fastapi import Depends, Header, HTTPException, Request
+
 from app.core.config import get_settings
 from app.core.security import decode_access_token, validate_tg_init_data
 from app.services.user_service import UserContext
@@ -26,7 +29,9 @@ async def get_current_user(
                 try:
                     age = time.time() - int(auth_date)
                     if age > _AUTH_DATE_MAX_AGE:
-                        raise HTTPException(status_code=401, detail="Telegram initData expired")
+                        raise HTTPException(
+                            status_code=401, detail="Telegram initData expired"
+                        )
                 except (ValueError, TypeError):
                     pass  # non-critical if auth_date is malformed
             return UserContext(
@@ -56,7 +61,9 @@ async def require_admin(user: UserContext = Depends(get_current_user)) -> UserCo
     return user
 
 
-async def require_developer(user: UserContext = Depends(get_current_user)) -> UserContext:
+async def require_developer(
+    user: UserContext = Depends(get_current_user),
+) -> UserContext:
     if not user.is_developer:
         raise HTTPException(status_code=403, detail="Developer only")
     return user

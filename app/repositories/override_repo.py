@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.override import Override
 from app.repositories.base import BaseRepository
+
 
 class OverrideRepository(BaseRepository):
     async def get_for_date(self, date: str) -> list[Override]:

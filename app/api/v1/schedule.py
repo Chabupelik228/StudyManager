@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 from datetime import datetime
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.dependencies import get_current_user, require_admin, get_request_details
+
+from app.api.dependencies import get_current_user, get_request_details, require_admin
 from app.db.database import async_session_maker, get_db
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.override_repo import OverrideRepository
@@ -22,7 +25,9 @@ def _parse_date(date: str) -> datetime:
         raise HTTPException(status_code=400, detail=f"Invalid date format: {date!r}")
 
 
-async def _log_schedule_action(admin_name: str, action_type: str, details: str, user_id: int) -> None:
+async def _log_schedule_action(
+    admin_name: str, action_type: str, details: str, user_id: int
+) -> None:
     async with async_session_maker() as session:
         await log_action(session, admin_name, action_type, details, user_id=user_id)
 
@@ -76,7 +81,9 @@ async def update_override(
     admin_name = get_display_name(user)
     action = "Отмена пары" if data.is_canceled else "Замена пары"
     background_tasks.add_task(
-        _log_schedule_action, admin_name, action,
+        _log_schedule_action,
+        admin_name,
+        action,
         f"{data.date} {data.time} → {data.new_name}",
         user.id,
     )

@@ -1,18 +1,26 @@
 from __future__ import annotations
+
 import uuid
 from datetime import datetime, timedelta
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.dependencies import get_current_user, require_admin
 from app.core.config import get_settings
+from app.data.students_data import EXCLUDED_DUTY_STUDENT_IDS
 from app.db.database import async_session_maker, get_db
 from app.integrations import telegram, vk
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.duty_repo import DutyRepository
 from app.repositories.override_repo import OverrideRepository
-from app.schemas.duty import DutyAssignRequest, DutiesResponse
+from app.schemas.duty import DutiesResponse, DutyAssignRequest
 from app.services.audit_service import log_action
-from app.services.schedule_service import MSK, compute_active_times, get_base_times_for_date
+from app.services.schedule_service import (
+    MSK,
+    compute_active_times,
+    get_base_times_for_date,
+)
 from app.services.user_service import (
     UserContext,
     get_all_students_with_tg,
@@ -20,12 +28,13 @@ from app.services.user_service import (
     get_name_by_student_id,
 )
 from app.websocket.manager import manager
-from app.data.students_data import EXCLUDED_DUTY_STUDENT_IDS
 
 router = APIRouter(tags=["duties"])
 
 
-async def _log_duties_action(admin_name: str, action_type: str, details: str, user_id: int) -> None:
+async def _log_duties_action(
+    admin_name: str, action_type: str, details: str, user_id: int
+) -> None:
     async with async_session_maker() as session:
         await log_action(session, admin_name, action_type, details, user_id=user_id)
 
@@ -53,7 +62,9 @@ async def get_duties(
     for t in sorted_times:
         try:
             start_h, start_m = map(int, t.split(":"))
-            end_t = (datetime(1, 1, 1, start_h, start_m) + timedelta(minutes=90)).strftime("%H:%M")
+            end_t = (
+                datetime(1, 1, 1, start_h, start_m) + timedelta(minutes=90)
+            ).strftime("%H:%M")
             if t <= current_time_str < end_t:
                 target_time = t
                 break
@@ -76,13 +87,15 @@ async def get_duties(
     for s in students:
         if s["id"] in EXCLUDED_DUTY_STUDENT_IDS:
             continue
-        result.append({
-            "id": s["id"],
-            "name": s["name"],
-            "tg_id": s["tg_id"],
-            "date": duties_map.get(s["id"]),
-            "is_absent_now": s["id"] in absent_ids,
-        })
+        result.append(
+            {
+                "id": s["id"],
+                "name": s["name"],
+                "tg_id": s["tg_id"],
+                "date": duties_map.get(s["id"]),
+                "is_absent_now": s["id"] in absent_ids,
+            }
+        )
 
     result.sort(key=lambda x: (x["date"] is None, x["date"]))
     return DutiesResponse(duties=result)
@@ -122,18 +135,26 @@ async def assign_duties(
     )
     for name in assigned_names:
         tg_text += f"✅ <b>{name}</b>\n"
-    tg_text += f'\n👤 <b>Назначил:</b> <a href="tg://user?id={user.id}">{admin_name}</a>'
+    tg_text += (
+        f'\n👤 <b>Назначил:</b> <a href="tg://user?id={user.id}">{admin_name}</a>'
+    )
 
     keyboard = {
-        "inline_keyboard": [[{"text": "↩️ Отменить назначение", "callback_data": f"web_undo:{undo_id}"}]]
+        "inline_keyboard": [
+            [{"text": "↩️ Отменить назначение", "callback_data": f"web_undo:{undo_id}"}]
+        ]
     }
 
-    background_tasks.add_task(telegram.send_message, settings.group_id, tg_text, "HTML", keyboard)
+    background_tasks.add_task(
+        telegram.send_message, settings.group_id, tg_text, "HTML", keyboard
+    )
     background_tasks.add_task(vk.send_message, tg_text)
 
     short_names = ", ".join(n.split()[0] for n in assigned_names)
     background_tasks.add_task(
-        _log_duties_action, admin_name, "Назначение дежурных",
+        _log_duties_action,
+        admin_name,
+        "Назначение дежурных",
         f"Дата: {data.date}. Дежурят: {short_names}",
         user.id,
     )

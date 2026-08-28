@@ -1,13 +1,17 @@
 from __future__ import annotations
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import get_settings
 from app.repositories.student_repo import StudentRepository
 
 
 class UserContext:
-    __slots__ = ("id", "first_name", "username")
+    __slots__ = ("first_name", "id", "username")
 
-    def __init__(self, id: int, first_name: str = "", username: str | None = None) -> None:
+    def __init__(
+        self, id: int, first_name: str = "", username: str | None = None
+    ) -> None:
         self.id = id
         self.first_name = first_name
         self.username = username
@@ -39,6 +43,7 @@ async def load_student_cache(session: AsyncSession) -> None:
     if not students:
         from app.data.students_data import STUDENTS
         from app.models.student import Student
+
         for s in STUDENTS:
             session.add(Student(id=s["id"], name=s["name"], tg_id=s["tg_id"]))
         try:
@@ -53,6 +58,7 @@ async def load_student_cache(session: AsyncSession) -> None:
         _id_to_tg = {s.id: s.tg_id for s in students if s.tg_id}
     else:
         from app.data.students_data import STUDENTS
+
         _tg_id_to_name = {s["tg_id"]: s["name"] for s in STUDENTS if s.get("tg_id")}
         _id_to_name = {s["id"]: s["name"] for s in STUDENTS}
         _id_to_tg = {s["id"]: s.get("tg_id", 0) for s in STUDENTS}
@@ -71,6 +77,7 @@ def get_display_name(user: UserContext) -> str:
 def get_name_by_student_id(student_id: int) -> str:
     if not _id_to_name:
         from app.data.students_data import STUDENTS
+
         for s in STUDENTS:
             if s["id"] == student_id:
                 return s["name"]
@@ -104,6 +111,7 @@ def get_full_name_by_tg(user: UserContext) -> str:
 def get_all_students() -> dict[int, str]:
     if not _id_to_name:
         from app.data.students_data import STUDENTS
+
         return {s["id"]: s["name"] for s in STUDENTS}
     return dict(_id_to_name)
 
@@ -111,6 +119,7 @@ def get_all_students() -> dict[int, str]:
 def get_all_students_with_tg() -> list[dict]:
     if not _id_to_name:
         from app.data.students_data import STUDENTS
+
         return [
             {"id": s["id"], "name": s["name"], "tg_id": s.get("tg_id", 0)}
             for s in STUDENTS
@@ -120,4 +129,3 @@ def get_all_students_with_tg() -> list[dict]:
         tg_id = _id_to_tg.get(sid, 0)
         result.append({"id": sid, "name": name, "tg_id": tg_id})
     return sorted(result, key=lambda x: x["id"])
-

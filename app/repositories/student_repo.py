@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.student import Student
 from app.repositories.base import BaseRepository
+
 
 class StudentRepository(BaseRepository):
     async def get_all(self) -> list[Student]:
