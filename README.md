@@ -68,42 +68,6 @@
 ### Требования
 - **Для запуска:** Linux VPS, Docker & Docker Compose, Node.js 18+.
 
-### Настройка окружения
-
-BOT_TOKEN=1234567890:AAGrAa4b2f2OiT-example
-GROUP_ID=-1001234567890
-
-
-VK_GROUP_ID=123456789
-VK_CHAT_PEER_ID=2000000001
-VK_TOKEN=vk1.a.example_token
-
-ADMIN_IDS=123456789,987654321
-
-AI_LOGS_PASSWORD_HASH=put_sha256_hash_here
-LOGS_SECRET_KEY=put_random_64char_hex_here
-
-
-API_KEYS=AIzaSy...;AIzaSy...
-
-JWT_SECRET=put_random_64char_hex_here
-
-POSTGRES_USER=studymanager
-POSTGRES_PASSWORD=strong_password_here
-POSTGRES_DB=studymanager_db
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-SHOW_DOCS=False
-DEVELOPER_ID=620159705
-CURATOR_ID=1331701095
-
-# ===========================
-# Internal secret (bot -> backend communication)
-# Generate: python -c "import secrets; print(secrets.token_hex(32))"
-# ===========================
-INTERNAL_SECRET=put_random_64char_hex_here
-
-
 ### Запуск в режиме разработки (Dev)
 ```bash
 # Бэкенд и База Данных (в Docker)
