@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 
+from fastapi import Header
 from app.api.v1 import admin, attendance, auth, duties, schedule, stats
 from app.core.config import get_settings
 from app.core.security import validate_tg_init_data
@@ -93,12 +94,11 @@ def create_app() -> FastAPI:
     @app.post("/internal/broadcast_duties")
     @app.post("/api/internal/broadcast_duties")
     async def internal_broadcast_duties(
-        x_internal_secret: str | None = None,
-        request: Request | None = None
+        request: Request,
+        x_internal_secret: str | None = Header(default=None),
     ):
         settings = get_settings()
-        # Require a shared secret from the bot to prevent public abuse
-        secret = request.headers.get("X-Internal-Secret", "") if request else ""
+        secret = x_internal_secret or request.headers.get("X-Internal-Secret", "")
         if settings.internal_secret and secret != settings.internal_secret:
             return JSONResponse({"error": "Forbidden"}, status_code=403)
         await manager.broadcast({"type": "update_duties"})
