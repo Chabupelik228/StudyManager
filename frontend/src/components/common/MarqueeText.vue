@@ -53,7 +53,7 @@ async function checkOverflow() {
   if (!container || !inner) return;
 
   // Compare scrollWidth vs clientWidth
-  if (inner.scrollWidth > container.clientWidth + 2) {
+  if (inner.scrollWidth > container.clientWidth + 6) {
     isOverflowing.value = true;
     scrollDistance = inner.scrollWidth - container.clientWidth;
     startMarquee();

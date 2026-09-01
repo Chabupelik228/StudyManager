@@ -158,7 +158,7 @@ function handleOpenReason(s: StudentAttendance) {
           <input
             v-model="renameName"
             type="text"
-            class="w-full p-3 rounded-xl bg-tg-secondaryBg border-none text-tg-text text-sm focus:ring-2 focus:ring-app-accent outline-none"
+            class="w-full p-3 rounded-xl bg-app-card-subtle border border-app-border text-app-text text-sm focus:ring-2 focus:ring-app-accent outline-none"
           />
         </div>
 
@@ -167,7 +167,7 @@ function handleOpenReason(s: StudentAttendance) {
           <input
             v-model="renameTeacher"
             type="text"
-            class="w-full p-3 rounded-xl bg-tg-secondaryBg border-none text-tg-text text-sm focus:ring-2 focus:ring-app-accent outline-none"
+            class="w-full p-3 rounded-xl bg-app-card-subtle border border-app-border text-app-text text-sm focus:ring-2 focus:ring-app-accent outline-none"
           />
         </div>
 

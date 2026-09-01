@@ -48,39 +48,10 @@ watch(
     }
   }
 );
-
-let touchStartX = 0;
-let touchStartY = 0;
-let touchStartTime = 0;
-
-function handleTouchStart(e: TouchEvent) {
-  if (e.touches.length !== 1) return;
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
-  touchStartTime = Date.now();
-}
-
-function handleTouchEnd(e: TouchEvent) {
-  if (e.changedTouches.length !== 1) return;
-  const deltaX = e.changedTouches[0].clientX - touchStartX;
-  const deltaY = e.changedTouches[0].clientY - touchStartY;
-  const elapsed = Date.now() - touchStartTime;
-
-  // Horizontal right swipe detected -> Go Back
-  if (elapsed < 600 && deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
-    if (uiStore.activeScreen === 'details' || uiStore.activeScreen === 'student-absences') {
-      uiStore.goBack();
-    }
-  }
-}
 </script>
 
 <template>
-  <div 
-    class="h-full w-full relative overflow-hidden bg-tg-secondaryBg text-tg-text"
-    @touchstart="handleTouchStart"
-    @touchend="handleTouchEnd"
-  >
+  <div class="h-full w-full relative overflow-hidden bg-tg-secondaryBg text-tg-text">
     <!-- Forbidden Screen if not in group -->
     <ForbiddenScreen v-if="authStore.isForbidden" />
 

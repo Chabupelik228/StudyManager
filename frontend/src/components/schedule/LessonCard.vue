@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Lesson } from '../../types/schedule';
 import MarqueeText from '../common/MarqueeText.vue';
-import { ChevronRight, Clock, User, CheckCircle2, AlertCircle } from 'lucide-vue-next';
+import { ChevronRight, User, CheckCircle2, AlertCircle } from 'lucide-vue-next';
 
 defineProps<{
   lesson: Lesson;
@@ -10,6 +10,25 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'click'): void;
 }>();
+
+function getEndTime(startTime: string, name: string): string {
+  if (!startTime || !startTime.includes(':')) return '';
+  const [hoursStr, minutesStr] = startTime.split(':');
+  let hours = parseInt(hoursStr, 10);
+  let minutes = parseInt(minutesStr, 10);
+
+  // Классный час lasts 60 minutes, others last 90 minutes
+  const duration = name.toLowerCase().includes('классный час') ? 60 : 90;
+  
+  minutes += duration;
+  hours += Math.floor(minutes / 60);
+  minutes = minutes % 60;
+  
+  const formattedHours = hours.toString().padStart(2, '0');
+  const formattedMinutes = minutes.toString().padStart(2, '0');
+  
+  return `${formattedHours}:${formattedMinutes}`;
+}
 </script>
 
 <template>
@@ -32,10 +51,11 @@ const emit = defineEmits<{
 
     <!-- Time Badge Column -->
     <div
-      class="flex flex-col items-center justify-center px-2 py-2 rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-extrabold text-xs min-w-[50px] border border-blue-200/80 dark:border-blue-800/60 flex-shrink-0 self-start mt-0.5"
+      class="flex flex-col items-center justify-center px-1.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-extrabold text-xs min-w-[50px] border border-blue-200/80 dark:border-blue-800/60 flex-shrink-0 self-start mt-0.5"
     >
-      <Clock class="w-3.5 h-3.5 mb-0.5 opacity-70" />
-      <span>{{ lesson.time }}</span>
+      <span class="tracking-tight">{{ lesson.time }}</span>
+      <div class="w-full h-px bg-blue-200/60 dark:bg-blue-800/60 my-0.5"></div>
+      <span class="tracking-tight opacity-75 text-[10px]">{{ getEndTime(lesson.time, lesson.name) }}</span>
     </div>
 
     <!-- Lesson Info with multi-line full title display -->
